@@ -326,7 +326,7 @@
     <!-- Paint Orders Statistics Section -->
     <div class="grid w-full md:grid-cols-4 grid-cols-2 gap-4">
       <!-- Total Paint Orders -->
-      <div
+      <!-- <div
         class="py-6 flex flex-col justify-center items-center border-2 border-[#059669] w-full space-y-4 rounded-2xl bg-[#059669] shadow-lg transform transition-transform duration-300 hover:-translate-y-4"
       >
         <div class="flex flex-col items-center text-center justify-center">
@@ -337,10 +337,10 @@
         <div class="flex flex-col items-center justify-center">
           <p class="text-2xl font-bold text-white">{{ paintOrderSummary.total_orders || 0 }}</p>
         </div>
-      </div>
+      </div> -->
 
       <!-- Paint Orders Revenue -->
-      <div
+      <!-- <div
         class="py-6 flex flex-col justify-center items-center border-2 border-[#0891b2] w-full space-y-4 rounded-2xl bg-[#0891b2] shadow-lg transform transition-transform duration-300 hover:-translate-y-4"
       >
         <div class="flex flex-col items-center text-center justify-center">
@@ -351,10 +351,10 @@
         <div class="flex flex-col items-center justify-center">
           <p class="text-2xl font-bold text-white">{{ (paintOrderSummary.total_amount || 0).toLocaleString() }} LKR</p>
         </div>
-      </div>
+      </div> -->
 
       <!-- Paint Orders Profit -->
-      <div
+      <!-- <div
         class="py-6 flex flex-col justify-center items-center border-2 border-[#dc2626] w-full space-y-4 rounded-2xl bg-[#dc2626] shadow-lg transform transition-transform duration-300 hover:-translate-y-4"
       >
         <div class="flex flex-col items-center text-center justify-center">
@@ -365,10 +365,10 @@
         <div class="flex flex-col items-center justify-center">
           <p class="text-2xl font-bold text-white">{{ (paintOrderSummary.total_profit || 0).toLocaleString() }} LKR</p>
         </div>
-      </div>
+      </div> -->
 
       <!-- Average Paint Order Value -->
-      <div
+      <!-- <div
         class="py-6 flex flex-col justify-center items-center border-2 border-[#7c3aed] w-full space-y-4 rounded-2xl bg-[#7c3aed] shadow-lg transform transition-transform duration-300 hover:-translate-y-4"
       >
         <div class="flex flex-col items-center text-center justify-center">
@@ -381,7 +381,7 @@
             {{ paintOrderSummary.total_orders > 0 ? ((paintOrderSummary.total_amount || 0) / paintOrderSummary.total_orders).toFixed(0) : 0 }} LKR
           </p>
         </div>
-      </div>
+      </div> -->
     </div>
 
 

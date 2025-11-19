@@ -19,19 +19,19 @@ class DatabaseSeeder extends Seeder
                 'name'      => 'admin',
                 'email'     => 'admin@admin.com',
                 'role_type' => 'Admin',
-                'password'  => 'admin@chamara',
+                'password'  => 'admin@amaak2025',
             ],
             [
                 'name'      => 'manager',
                 'email'     => 'manager@manager.com',
                 'role_type' => 'Manager',
-                'password'  => 'manager@chamara',
+                'password'  => 'manager@amaak2025',
             ],
             [
                 'name'      => 'cashier',
                 'email'     => 't1@cashier.com',
                 'role_type' => 'Cashier',
-                'password'  => 'cashier@chamara',
+                'password'  => 'cashier@amaak2025',
             ],
         ];
 

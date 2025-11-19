@@ -73,7 +73,7 @@
         </div>
       </Link>
 
-        <Link href="/paints" v-if="HasRole(['Admin', 'Manager'])">
+        <!-- <Link href="/paints" v-if="HasRole(['Admin', 'Manager'])">
         <div class="dashboard-card bg-[#c62e51]">
           <div class="card-content">
             <div class="icon-container">
@@ -91,7 +91,7 @@
             </div>
           </div>
         </div>
-      </Link>
+      </Link> -->
 
       <Link href="/suppliers" v-if="HasRole(['Admin', 'Manager'])">
         <div class="dashboard-card bg-[#914F1E]">
