@@ -122,15 +122,17 @@
   {{ history.sale_date || "N/A" }}
 </td>
                             <td class="p-4 font-bold border-gray-200">
-                                <!-- <button
-                                    @click="printReceipt(history)"
-                                    class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 mr-4"
-                                >
-                                    Print
-                                </button> -->
-                                <button class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600" @click="deleteReceipt(history.order_id)">
-                                    Delete
-                                </button>
+                                <div class="flex gap-2">
+                                    <button
+                                        @click="printReceipt(history)"
+                                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                                    >
+                                        Print
+                                    </button>
+                                    <button class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600" @click="deleteReceipt(history.order_id)">
+                                        Delete
+                                    </button>
+                                </div>
                             </td>
 
                         </tr>
@@ -209,284 +211,256 @@ $(document).ready(function () {
 });
 
 const printReceipt = (history) => {
+  const companyData = props.companyInfo[0];
+  const saleItems = Array.isArray(history.sale_items) ? history.sale_items : [];
 
-const companyData = props.companyInfo[0];
-const getSafeValue = (obj, path) => {
-    return path.split('.').reduce((acc, part) => (acc && acc[part] ? acc[part] : ''), obj);
-  };
+  const receiptHTML = `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt</title>
+    <style>
+      @media print {
+        body {
+          margin: 0;
+          padding: 0;
+          -webkit-print-color-adjust: exact;
+        }
+      }
+      body {
+        background-color: #ffffff;
+        font-size: 12px;
+        font-family: 'Arial', sans-serif;
+        margin: 0;
+        padding: 10px;
+        color: #000;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 16px;
+      }
+      .header h1 {
+        font-size: 20px;
+        font-weight: bold;
+        margin: 0;
+      }
+      .header p {
+        font-size: 10px;
+        margin: 4px 0;
+      }
+      .section {
+        margin-bottom: 16px;
+        padding-top: 8px;
+        border-top: 1px solid #000;
+      }
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        margin-top: 8px;
+      }
+      .info-row p {
+        margin: 0;
+        font-weight: bold;
+      }
+      .info-row small {
+        font-weight: normal;
+      }
+      table {
+        width: 100%;
+        font-size: 10px;
+        border-collapse: collapse;
+        margin-top: 8px;
+      }
+      table th, table td {
+        padding: 6px 8px;
+      }
+      table th {
+        text-align: left;
+      }
+      table td {
+        text-align: right;
+      }
+      table td:first-child {
+        text-align: left;
+      }
+      .totals {
+        border-top: 1px solid #000;
+        padding-top: 8px;
+        font-size: 12px;
+      }
+      .totals div {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      .totals .total-line {
+        font-size: 14px;
+        font-weight: bold;
+      }
+      .footer {
+        text-align: center;
+        font-size: 10px;
+        margin-top: 16px;
+      }
+      .footer p {
+        margin: 6px 0;
+      }
+      .footer .italic {
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="receipt-container">
+      <!-- Header -->
+      <div class="header" style="text-align:center;">
+        <img src="/images/billlogo.png" style="width: 200px; height: 80px;" />
+        ${companyData?.name ? `<h1>${companyData.name}</h1>` : ''}
+        ${companyData?.address ? `<p>${companyData.address}</p>` : ''}
+        ${(companyData?.phone || companyData?.phone2 || companyData?.email)
+          ? `<p>${companyData.phone || ''} | ${companyData.phone2 || ''} ${companyData.email || ''}</p>`
+          : ''}
+      </div>
 
-const saleItems = Array.isArray(history.sale_items) ? history.sale_items : [];
+      <!-- Order Info -->
+      <div class="section">
+        <div class="info-row">
+          <div>
+            <p>Date:</p>
+            <small>${new Date(history.created_at).toLocaleDateString()}</small>
+          </div>
+          <div style="text-align: right;">
+            <p>Order No:</p>
+            <small>${history.order_id}</small>
+          </div>
+        </div>
+        <div class="info-row">
+          <div>
+            <p>Customer:</p>
+            <small>${history.customer?.name || ''}</small>
+          </div>
+          <div style="text-align: right;">
+            <p>Cashier:</p>
+            <small>${history.user?.name || ''}</small>
+          </div>
+        </div>
+        <div class="info-row">
+          <div>
+            <p>Payment Method:</p>
+            <small>${history.payment_method || 'Cash'}</small>
+          </div>
+          <div></div>
+        </div>
+      </div>
 
-const productRows = saleItems.map((item) => {
-  const name = item?.name || item?.product?.name || "Item";
-  const qty = Number(item?.quantity) || 0;
+      <!-- Items Table -->
+      <div class="section">
+        <table style="width:100%; border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th style="text-align:left;">Item</th>
+              <th style="text-align:center;">Qty × Price</th>
+              <th style="text-align:right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${saleItems.map(item => {
+              const originalPrice = Number(item.unit_price || item.selling_price || 0);
+              const hasDiscount = !!item.apply_discount && Number(item.discount) > 0;
+              let discountedPrice = originalPrice;
 
-  // Get unit name if available
-  const unitName = item?.unit?.name || item?.product?.unit?.name || '';
+              if (hasDiscount) {
+                if (item.discounted_price != null) {
+                  discountedPrice = Number(item.discounted_price);
+                } else if (item.discount_type === "percent") {
+                  discountedPrice = originalPrice * (1 - Number(item.discount) / 100);
+                } else {
+                  discountedPrice = originalPrice - Number(item.discount);
+                }
+                if (discountedPrice < 0) discountedPrice = 0;
+              }
 
-  // Base/original price (fallbacks supported)
-  const originalPrice = Number(
-    item?.unit_price ?? item?.selling_price ?? item?.originalPrice
-  ) || 0;
+              const unitName = item.unit?.name || item.product?.unit?.name || '';
+              const itemName = item.name || item.product?.name || "Item";
 
-  // Determine discounted price
-  const hasDiscount = !!item?.apply_discount && Number(item?.discount) > 0;
-  let discountedPrice = originalPrice;
+              return `
+                <tr style="border-bottom: 1px dashed #000;">
+                  <td style="text-align: left; padding: 8px 4px;">
+                    <b>${itemName}</b>
+                    ${hasDiscount ? `<br><small style="background-color: #000; color: #fff; font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 4px;">
+                      ${item.discount_type === 'percent' ? item.discount + '% off' : item.discount.toFixed(2) + ' LKR off'}
+                    </small>` : ''}
+                  </td>
+                  <td style="text-align: center; padding: 8px 4px;">${item.quantity}${unitName ? ' ' + unitName : ''} × ${discountedPrice.toFixed(2)}</td>
+                  <td style="text-align: right; padding: 8px 4px;">${(discountedPrice * item.quantity).toFixed(2)}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
 
-  if (hasDiscount) {
-    if (item?.discounted_price != null) {
-      discountedPrice = Number(item.discounted_price) || originalPrice;
-    } else if (item?.discount_type === "percent") {
-      discountedPrice = originalPrice * (1 - (Number(item.discount) || 0) / 100);
-    } else {
-      // fixed amount off
-      discountedPrice = originalPrice - (Number(item.discount) || 0);
-    }
-    if (discountedPrice < 0) discountedPrice = 0;
+      <!-- Totals -->
+      <div class="totals">
+        <div>
+          <span>Sub Total</span>
+          <span>${(Number(history.total_amount) || 0).toFixed(2)} LKR</span>
+        </div>
+        <div>
+          <span>Discount</span>
+          <span>${(Number(history.discount) || 0).toFixed(2)} LKR</span>
+        </div>
+        <div>
+          <span>Custom Discount</span>
+          <span>${(Number(history.custom_discount) || 0).toFixed(2)} LKR</span>
+        </div>
+        <div class="total-line">
+          <span>Total</span>
+          <span>${(Number(history.total_amount) - (Number(history.discount) || 0) - (Number(history.custom_discount) || 0)).toFixed(2)} LKR</span>
+        </div>
+        <div>
+          <span>Cash</span>
+          <span>${(Number(history.cash) || 0).toFixed(2)} LKR</span>
+        </div>
+        <div style="font-weight: bold;">
+          <span>Balance</span>
+          <span>${(Number(history.cash) - (Number(history.total_amount) - (Number(history.discount) || 0) - (Number(history.custom_discount) || 0))).toFixed(2)} LKR</span>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer" style="text-align:center; margin-top:10px;">
+        <p>THANK YOU COME AGAIN</p>
+        <p class="italic">Let the quality define its own standards</p>
+        <p style="font-weight: bold;">Powered by JAAN Network Ltd.</p>
+        <p>${new Date(history.created_at).toLocaleTimeString()}</p>
+      </div>
+    </div>
+  </body>
+  </html>
+  `;
+
+  // Open a new window
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    alert("Failed to open print window. Please check your browser settings.");
+    return;
   }
 
-  const discountBadge = hasDiscount
-    ? (item?.discount_type === "percent"
-        ? `${Number(item.discount)}% off`
-        : `${(Number(item.discount) || 0).toFixed(2)} LKR off`)
-    : "";
-
-  return `
-    <tr>
-      <td colspan="3">
-        <b>${name}</b><br>
-        <small style="font-size: 12px; font-weight:600;">
-          Selling Price: ${originalPrice.toFixed(2)}
-        </small>
-        ${unitName ? `<br><small style="font-size: 11px; color: #666;">Unit: ${unitName}</small>` : ''}
-        ${
-          hasDiscount
-            ? `<small
-                 style="
-                   background-color:#000;
-                   color:#fff;
-                   font-size:9px;
-                   font-weight:600;
-                   padding:2px 6px;
-                   border-radius:4px;
-                   margin:0 8px;
-                 "
-               >${discountBadge}</small>`
-            : ""
-        }
-      </td>
-    </tr>
-    <tr style="border-bottom:1px dashed #000; font-size:14px; font-weight:600;">
-      <td style="text-align:left;"></td>
-      <td style="text-align:center;">${qty}${unitName ? ' ' + unitName : ''} × ${discountedPrice.toFixed(2)}</td>
-      <td style="text-align:right;">${(discountedPrice * qty).toFixed(2)}</td>
-    </tr>
-  `;
-}).join("");
-
-  const receiptContent = `
-  <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Receipt</title>
-      <style>
-        @media print {
-            body {
-                margin: 0;
-                padding: 0;
-                -webkit-print-color-adjust: exact;
-            }
-        }
-        body {
-            background-color: #ffffff;
-            font-size: 12px;
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 10px;
-            color: #000;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 16px;
-        }
-        .header h1 {
-            font-size: 20px;
-            font-weight: bold;
-            margin: 0;
-        }
-        .header p {
-            font-size: 10px;
-            margin: 4px 0;
-        }
-        .section {
-            margin-bottom: 16px;
-            padding-top: 8px;
-            border-top: 1px solid #000;
-        }
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-            margin-top: 8px;
-        }
-        .info-row p {
-            margin: 0;
-            font-weight: bold;
-        }
-        .info-row small {
-            font-weight: normal;
-        }
-        table {
-            width: 100%;
-            font-size: 12px;
-            border-collapse: collapse;
-            margin-top: 8px;
-        }
-        table th, table td {
-            padding: 6px 8px;
-            border-bottom: 1px solid #ddd;
-        }
-        table th {
-            text-align: left;
-        }
-        table td {
-            text-align: right;
-        }
-        table td:first-child {
-            text-align: left;
-        }
-        .totals {
-            border-top: 1px solid #000;
-            padding-top: 8px;
-            font-size: 12px;
-        }
-        .totals div {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-        .totals div:nth-child(4) {
-            font-size: 14px;
-            font-weight: bold;
-        }
-        .footer {
-            text-align: center;
-            font-size: 10px;
-            margin-top: 16px;
-        }
-        .footer p {
-            margin: 6px 0;
-        }
-        .footer .italic {
-            font-style: italic;
-        }
-        .text-right {
-            text-align: right;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="receipt-container">
-
-      <div class="header">
-        <h1>${companyData.name}</h1>
-        <p>${companyData.address}</p>
-        <p>${companyData.phone} | ${companyData.phone2} | ${companyData.email}</p>
-      </div>
-
-        <div class="section">
-            <div class="info-row">
-                <div>
-                    <p>Date:</p>
-                    <small>
-                        ${new Date(history.created_at).toLocaleDateString('en-US', {
-                        dateStyle: 'medium',
-                        })}
-
-                    </small>
-                </div>
-                <div>
-                    <p>Order No:</p>
-                    <small>${history.order_id}</small>
-                </div>
-            </div>
-            <div class="info-row">
-                <div>
-                    <p>Customer:</p>
-                    <small>${history.customer?.name || ' '}</small>
-                </div>
-
-                <div>
-                    <p>Cashier:</p>
-                    <small>${history.user?.name || ' '}</small>
-                </div>
-            </div>
-        </div>
-
-        <div class="section">
-            <table>
-                <thead>
-                    <tr>
-           <th style="text-align:left;">Item</th>
-       <th style="text-align:center;">Qty × Price</th>
-       <th style="text-align:right;">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${productRows}
-                </tbody>
-            </table>
-        </div>
-
-
-        <div class="totals">
-            <div>
-                <span>Sub Total</span>
-                <span>${history.total_amount || 0} LKR</span>
-            </div>
-            <div>
-                <span>Discount</span>
-                <span>${history.discount || 0} LKR</span>
-            </div>
-            <div>
-                <span>Custom Discount</span>
-                <span>${history.custom_discount || 0} LKR</span>
-            </div>
-            <div>
-                <span>Total</span>
-                <span>${(history.total_amount - (history.discount || 0) -(history.custom_discount || 0)).toFixed(2)} LKR</span>
-            </div>
-            <div>
-                <span>Cash</span>
-                <span>${history.cash || 0} LKR</span>
-            </div>
-            <div>
-                <span>Balance</span>
-                <span>${(history.cash - (history.total_amount - (history.discount || 0) -(history.custom_discount || 0))).toFixed(2)} LKR</span>
-            </div>
-        </div>
-
-        <div class="footer">
-            <p>THANK YOU COME AGAIN</p>
-            <p class="italic">Let the quality define its own standards</p>
-            <p style="font-weight: bold;">Powered by JAAN Network (Pvt) Ltd.</p>
-            <p>${new Date(history.created_at).toLocaleTimeString('en-US', {
-                        timeStyle: 'long',
-                        hourCycle: 'h23',
-                        })}</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
-  const printWindow = window.open('', '_blank');
-  printWindow.document.write(receiptContent);
+  // Write the content to the new window
+  printWindow.document.open();
+  printWindow.document.write(receiptHTML);
   printWindow.document.close();
-  printWindow.focus();
-  printWindow.print();
-  printWindow.close();
+
+  // Wait for the content to load before triggering print
+  printWindow.onload = () => {
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  };
 };
 
 

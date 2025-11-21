@@ -260,7 +260,7 @@
      <div class="receipt-container">
        <!-- Header -->
        <div class="header" style="text-align:center;">
-         <img src="/images/billlogo.png" style="width: 150px; height: 140px;" />
+         <img src="/images/billlogo.png" style="width: 200px; height: 80px;" />
          ${companyInfo?.value?.name ? `<h1>${companyInfo.value.name}</h1>` : ''}
          ${companyInfo?.value?.address ? `<p>${companyInfo.value.address}</p>` : ''}
          ${(companyInfo?.value?.phone || companyInfo?.value?.phone2 || companyInfo?.value?.email)
@@ -275,7 +275,7 @@
              <p>Date:</p>
              <small>${new Date().toLocaleDateString()} </small>
            </div>
-           <div>
+           <div style="text-align: right;">
              <p>Order No:</p>
              <small>${props.orderid}</small>
            </div>
@@ -285,7 +285,7 @@
              <p>Customer:</p>
              <small>${props.customer.name}</small>
            </div>
-           <div>
+           <div style="text-align: right;">
              <p>Cashier:</p>
              <small>${props.cashier.name}</small>
            </div>
@@ -318,40 +318,18 @@
          ? Number(item.discounted_price)
          : originalPrice;
        const unitName = item.unit_id && item.unit ? item.unit.name : '';
+       const hasDiscount = item.discount > 0;
 
        return `
-    <tr>
-      <td colspan="4">
-        <b>${item.name}</b><br>
-        <small style="font-size: 12px; font-weight:600;">Selling Price: ${originalPrice.toFixed(2)}</small>
-        
-        ${
-          item.discount > 0
-            ? `<small
-                style="
-                  background-color: #000;
-                  color: #fff;
-                  font-size: 9px;
-                  font-weight: 600;
-                  padding: 2px 6px;
-                  border-radius: 4px;
-                  margin: 0 8px;
-                "
-              >
-                ${
-                  item.discount_type === 'percent'
-                    ? item.discount + '% off'
-                    : item.discount.toFixed(2) + ' LKR off'
-                }
-              </small>`
-            : ''
-        }
+    <tr style="border-bottom: 1px dashed #000;">
+      <td style="text-align: left; padding: 8px 4px;">
+        <b>${item.name}</b>
+        ${hasDiscount ? `<br><small style="background-color: #000; color: #fff; font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 4px;">
+          ${item.discount_type === 'percent' ? item.discount + '% off' : item.discount.toFixed(2) + ' LKR off'}
+        </small>` : ''}
       </td>
-    </tr>
-    <tr style="border-bottom: 1px dashed #000; font-size: 14px; font-weight:600;">
-      <td style="text-align: left;"></td>
-      <td style="text-align: center;">${item.quantity}${unitName ? ' ' + unitName : ''} × ${discountedPrice.toFixed(2)}</td>
-      <td style="text-align: right;">${(discountedPrice * item.quantity).toFixed(2)}</td>
+      <td style="text-align: center; padding: 8px 4px;">${item.quantity}${unitName ? ' ' + unitName : ''} × ${discountedPrice.toFixed(2)}</td>
+      <td style="text-align: right; padding: 8px 4px;">${(discountedPrice * item.quantity).toFixed(2)}</td>
     </tr>
        `;
      }).join('')}
