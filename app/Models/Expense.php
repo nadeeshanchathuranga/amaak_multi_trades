@@ -8,16 +8,19 @@ use Illuminate\Database\Eloquent\Model;
 class Expense extends Model
 {
     use HasFactory;
+    
     protected $fillable = [
-        'user_id',
-        'description',
-        'amount',
         'date',
+        'category',
+        'amount',
+        'payment_method',
+        'reference',
+        'description',
+        'note',
     ];
 
-    // Relationships
-    public function user()
-    {
-        return $this->belongsTo(User::class, 'user_id','id');
-    }
+    protected $casts = [
+        'date' => 'date',
+        'amount' => 'decimal:2',
+    ];
 }

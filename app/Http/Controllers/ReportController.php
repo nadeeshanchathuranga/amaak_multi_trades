@@ -7,6 +7,7 @@ use App\Models\Report;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\StockTransaction;
+use App\Models\Expense;
 use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -311,7 +312,19 @@ class ReportController extends Controller
     $totalCustomer = $salesQuery->distinct('customer_id')->count('customer_id');
 
     // =========================
-    // 10. Return to Vue via Inertia
+    // 11. Calculate Expenses
+    // =========================
+    $expensesQuery = Expense::query();
+    
+    if ($startDate && $endDate) {
+        $expensesQuery->whereBetween('date', [$startDate, $endDate]);
+    }
+    
+    $totalExpenses = $expensesQuery->sum('amount');
+    $profitAfterExpenses = $totalSaleAmount + (isset($paintOrderSummary['total_amount']) ? $paintOrderSummary['total_amount'] : 0) - $totalExpenses;
+
+    // =========================
+    // 12. Return to Vue via Inertia
     // =========================
     return Inertia::render('Reports/Index', [
         'products' => $products,
@@ -332,6 +345,8 @@ class ReportController extends Controller
         'stockTransactionsReturn'=>$stockTransactionsReturn,
         'paintOrderSummary' => $paintOrderSummary,
         'paintOrderDetails' => $paintOrderDetails,
+        'totalExpenses' => $totalExpenses,
+        'profitAfterExpenses' => $profitAfterExpenses,
     ]);
 }
 

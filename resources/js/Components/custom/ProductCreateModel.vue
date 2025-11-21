@@ -715,10 +715,22 @@ const form = useForm({
   expire_date: null,
   batch_no: "",
   purchase_date: null,
-   unit_id: "",
-   type: "Normal",
-
+  unit_id: "",
+  type: "Normal",
 });
+
+// Watch for changes in product code and auto-generate batch number
+watch(
+  () => form.code,
+  (newCode) => {
+    if (newCode) {
+      // Always set to batch01 for new product creation
+      form.batch_no = "batch01";
+    } else {
+      form.batch_no = "";
+    }
+  }
+);
 
 const isDialogOpen = ref(false);
 const dialogType = ref("size");

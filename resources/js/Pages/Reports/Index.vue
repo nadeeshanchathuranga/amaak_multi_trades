@@ -425,6 +425,37 @@
                 </div>
             </div>
         </div>
+
+    <!-- Expenses Section -->
+    <div class="grid w-full md:grid-cols-2 grid-cols-1 gap-4">
+      <!-- Total Expenses -->
+      <div
+        class="py-6 flex flex-col justify-center items-center border-2 border-[#DC2626] w-full space-y-8 rounded-2xl bg-[#DC262666] shadow-lg transform transition-transform duration-300 hover:-translate-y-4"
+      >
+        <div class="flex flex-col items-center justify-center">
+          <h2 class="text-xl font-extrabold tracking-wide text-black uppercase">
+            Total Expenses
+          </h2>
+        </div>
+        <div class="flex flex-col items-center justify-center">
+          <p class="text-2xl font-bold text-black">{{ (totalExpenses || 0).toLocaleString() }} LKR</p>
+        </div>
+      </div>
+      <!-- Profit After Expenses -->
+      <div
+        class="py-6 flex flex-col justify-center items-center border-2 border-[#16A34A] w-full space-y-8 rounded-2xl bg-[#16A34A66] shadow-lg transform transition-transform duration-300 hover:-translate-y-4"
+      >
+        <div class="flex flex-col items-center justify-center">
+          <h2 class="text-xl font-extrabold tracking-wide text-black uppercase">
+            Profit After Expenses
+          </h2>
+        </div>
+        <div class="flex flex-col items-center justify-center">
+          <p class="text-2xl font-bold text-black">{{ (profitAfterExpenses || 0).toLocaleString() }} LKR</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Charts Section -->
     <div class="flex md:flex-row flex-col items-center justify-center w-full h-full md:space-x-4 md:space-y-0 space-y-4">
       <!-- Chart 1 -->
@@ -1047,6 +1078,8 @@ const props = defineProps({
   stockTransactionsReturn: { type: Array, default: () => [] },
   paintOrderSummary: { type: Object, default: () => ({ total_orders: 0, total_amount: 0, total_profit: 0, total_cost: 0 }) },
   paintOrderDetails: { type: Array, default: () => [] },
+  totalExpenses: { type: Number, default: 0 },
+  profitAfterExpenses: { type: Number, default: 0 },
 });
 
 const totalPrice = computed(() => {

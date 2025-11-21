@@ -21,6 +21,7 @@ use App\Http\Controllers\MachineRefillController;
 use App\Http\Controllers\BaseStockController;
 use App\Http\Controllers\PaintOrderController;
 use App\Http\Controllers\UnitController;
+use App\Http\Controllers\ExpenseController;
 
 use App\Http\Controllers\QuotationController;
 
@@ -82,9 +83,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('products-variant', [ProductController::class, 'productVariantStore'])->name('productVariant');
 
     Route::post('products-size', [ProductController::class, 'sizeStore'])->name('productSize');
-  Route::resource('units', UnitController::class);
+    Route::resource('units', UnitController::class);
 
-    // Route::resource('company-info', CompanyInfoController::class)->name('companyInfo.index');
+        // Expenses routes
+        Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
+        Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
+        Route::post('/expenses/{expense}', [ExpenseController::class, 'update'])->name('expenses.update');
+        Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
+        Route::get('/expenses/dashboard-summary', [ExpenseController::class, 'dashboardSummary'])->name('expenses.dashboard-summary');    // Route::resource('company-info', CompenseInfoController::class)->name('companyInfo.index');
     Route::get('/company-info', [CompanyInfoController::class, 'index'])->name('companyInfo.index');
     Route::post('/company-info/{companyInfo}', [CompanyInfoController::class, 'update'])->name('companyInfo.update');
 
