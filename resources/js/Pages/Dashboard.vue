@@ -308,6 +308,26 @@
         </div>
       </Link>
 
+      <Link href="/cashier-commission" v-if="HasRole(['Admin', 'Manager'])">
+        <div class="dashboard-card bg-[#10B981]">
+          <div class="card-content">
+            <div class="icon-container">
+              <img
+                src="/images/dashboard/employee.png"
+                class="icon"
+                alt="dresshub.lk"
+              />
+            </div>
+            <div class="text-container">
+              <p class="title">Employer Commission</p>
+              <p class="description">
+                Track and manage employee commissions earned from sales, with detailed breakdowns by category and time period.
+              </p>
+            </div>
+          </div>
+        </div>
+      </Link>
+
       <Link href="/transactionHistory" v-if="HasRole(['Admin'])">
         <div class="dashboard-card bg-[#FFBF00]">
           <div class="card-content">

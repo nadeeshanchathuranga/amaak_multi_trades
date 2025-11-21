@@ -13,6 +13,7 @@ use App\Models\Size;
 use App\Models\ReturnItem;
 use App\Models\StockTransaction;
 use App\Models\Employee;
+use App\Models\EmployeeCommission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -241,7 +242,7 @@ class PosController extends Controller
                     }
 
                     // Create sale item
-                    SaleItem::create([
+                    $saleItem = SaleItem::create([
                         'sale_id' => $sale->id,
                         'product_id' => $product['id'],
                         'quantity' => $product['quantity'],
@@ -261,6 +262,32 @@ class PosController extends Controller
                     $productModel->update([
                         'stock_quantity' => $newStockQuantity,
                     ]);
+
+                    // Calculate and record commission if employee is selected and category has commission
+                    if ($request->input('employee_id') && $productModel->category_id) {
+                        $category = \App\Models\Category::find($productModel->category_id);
+                        if ($category && $category->commission > 0) {
+                            $totalProductAmount = $product['selling_price'] * $product['quantity'];
+                            $commissionAmount = EmployeeCommission::calculateCommission(
+                                $totalProductAmount,
+                                $category->commission
+                            );
+
+                            EmployeeCommission::create([
+                                'employee_id' => $request->input('employee_id'),
+                                'sale_id' => $sale->id,
+                                'sale_item_id' => $saleItem->id,
+                                'product_id' => $product['id'],
+                                'category_id' => $productModel->category_id,
+                                'commission_percentage' => $category->commission,
+                                'product_price' => $product['selling_price'],
+                                'quantity' => $product['quantity'],
+                                'total_product_amount' => $totalProductAmount,
+                                'commission_amount' => $commissionAmount,
+                                'commission_date' => now(),
+                            ]);
+                        }
+                    }
                 }
             }
                 foreach ($returnItems as $item) {

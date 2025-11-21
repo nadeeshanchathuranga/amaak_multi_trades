@@ -63,6 +63,21 @@
                 </div>
 
                 <div>
+                  <label class="block text-sm font-medium text-gray-300">Commission:</label>
+                  <div class="flex items-center space-x-2 mt-2" style="max-width:200px;">
+                    <input
+                      v-model="form.commission"
+                      type="text"
+                      id="commission"
+                      placeholder="e.g. 2.5"
+                      class="w-full px-4 py-2 text-black rounded-md focus:outline-none focus:ring focus:ring-blue-600"
+                    />
+                    <span class="text-white">%</span>
+                  </div>
+                  <span v-if="form.errors.commission" class="mt-4 text-red-500">{{ form.errors.commission }}</span>
+                </div>
+
+                <div>
                   <!-- Parent Category Dropdown -->
                   <label class="block text-sm font-medium text-gray-300"
                     >Parent Category:</label
@@ -162,6 +177,7 @@ defineProps({
 const form = useForm({
   name: "",
   parent_id: "",
+  commission: "",
 });
 
 const submit = () => {

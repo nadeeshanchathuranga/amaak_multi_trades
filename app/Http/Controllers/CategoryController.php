@@ -32,6 +32,7 @@ class CategoryController extends Controller
                 return [
                     'id' => $category->id,
                     'name' => $category->name,
+                    'commission' => $category->commission,
                     'parent' => $category->parent ? [
                         'id' => $category->parent->id,
                         'name' => $category->parent->name,
@@ -93,6 +94,7 @@ class CategoryController extends Controller
             $validated = $request->validate([
                 'name' => 'required|string|max:191|unique:categories,name',
                 'parent_id' => 'nullable|exists:categories,id',
+                'commission' => 'nullable|numeric|min:0|max:100',
             ]);
 
 
@@ -106,7 +108,8 @@ class CategoryController extends Controller
             // Validate name directly
             $validated = $request->validate([
                 'name' => 'required|string|max:191|regex:/^[a-zA-Z\s]+$/|unique:categories,name',
-                 'parent_id' => 'nullable|exists:categories,id',
+                  'parent_id' => 'nullable|exists:categories,id',
+                  'commission' => 'nullable|numeric|min:0|max:100',
             ]);
 
 
@@ -139,6 +142,7 @@ class CategoryController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:191|regex:/^[a-zA-Z\s]+$/|unique:categories,name',
             'parent_id' => 'nullable|exists:categories,id',
+            'commission' => 'nullable|numeric|min:0|max:100',
         ]);
 
         // Check for circular relationship
