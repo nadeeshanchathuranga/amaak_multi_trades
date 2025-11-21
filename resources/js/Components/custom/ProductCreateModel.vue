@@ -1,5 +1,5 @@
 <template>
-  <TransitionRoot as="template" :show="open">
+  <TransitionRoot as="template" :show="props.open">
     <Dialog class="relative z-10" @close="$emit('update:open', false)">
       <!-- Modal Overlay -->
       <TransitionChild
@@ -188,7 +188,7 @@
                             >
                               <option value="">No Parent</option>
                               <option
-                                v-for="category in categories"
+                                v-for="category in props.categories"
                                 :key="category.id"
                                 :value="category.id"
                               >
@@ -247,7 +247,7 @@
                   >
                     <option value="">Select a Category</option>
                     <option
-                      v-for="category in categories"
+                      v-for="category in props.categories"
                       :key="category.id"
                       :value="category.id"
                     >
@@ -275,7 +275,7 @@
                   >
                     <option value="">Select a Supplier</option>
                     <option
-                      v-for="supplier in suppliers"
+                      v-for="supplier in props.suppliers"
                       :key="supplier.id"
                       :value="supplier.id"
                     >
@@ -416,7 +416,7 @@
                       >
                         <option value="">Select a Size</option>
                         <option
-                          v-for="size in sizes"
+                          v-for="size in props.sizes"
                           :key="size.id"
                           :value="size.id"
                         >
@@ -444,7 +444,7 @@
                       >
                         <option value="">Select a Color</option>
                         <option
-                          v-for="color in colors"
+                          v-for="color in props.colors"
                           :key="color.id"
                           :value="color.id"
                         >
@@ -481,7 +481,7 @@
                     >
                       <option value="">Select a Unit</option>
                       <option
-                        v-for="unit in units"
+                        v-for="unit in props.units"
                         :key="unit.id"
                         :value="unit.id"
                       >
@@ -666,8 +666,7 @@ const isPharma = computed(() => import.meta.env.VITE_APP_NAME === "pharma");
 
  
 // Define props
-const { open, categories, colors, suppliers, sizes, units ,selectedProduct } =
-  defineProps({
+const props = defineProps({
     open: {
       type: Boolean,
       required: true,
@@ -691,6 +690,10 @@ const { open, categories, colors, suppliers, sizes, units ,selectedProduct } =
     units: {
       type: Array,
       required: true,
+    },
+    products: {
+      type: Array,
+      default: () => [],
     },
     selectedProduct: {
       type: Object,
@@ -719,15 +722,45 @@ const form = useForm({
   type: "Normal",
 });
 
-// Watch for changes in product code and auto-generate batch number
+// Watch for product code changes
 watch(
   () => form.code,
   (newCode) => {
-    if (newCode) {
-      // Always set to batch01 for new product creation
-      form.batch_no = "batch01";
+    const productsList = props.products || [];
+    
+    if (newCode && newCode.trim()) {
+      // Find product with this code
+      const product = productsList.find(p => p.code === newCode);
+      
+      if (product) {
+        // Load product name only if product exists with this code
+        form.name = product.name;
+        
+        // Get the next batch number for this product code
+        const productsWithCode = productsList.filter(p => p.code === newCode);
+        
+        if (productsWithCode.length > 0) {
+          // Extract batch numbers and get the highest number
+          const batchNumbers = productsWithCode
+            .map(p => {
+              const match = p.batch_no.match(/batch(\d+)/);
+              return match ? parseInt(match[1]) : 0;
+            })
+            .sort((a, b) => b - a);
+          
+          const nextBatchNum = (batchNumbers[0] || 0) + 1;
+          form.batch_no = `batch${String(nextBatchNum).padStart(2, '0')}`;
+        } else {
+          form.batch_no = 'batch01';
+        }
+      } else {
+        // New product code - clear name and set batch to batch01
+        form.name = '';
+        form.batch_no = 'batch01';
+      }
     } else {
       form.batch_no = "";
+      form.name = "";
     }
   }
 );
@@ -797,7 +830,6 @@ const submit = () => {
   form.post("/products", {
     preserveScroll: true,
     onSuccess: () => {
-      console.log("Product created successfully!");
       form.reset(); // Reset form fields after successful submission
       emit("update:open", false);
     },

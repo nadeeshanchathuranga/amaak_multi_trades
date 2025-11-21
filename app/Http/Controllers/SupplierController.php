@@ -8,6 +8,7 @@ use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 
@@ -127,5 +128,28 @@ class SupplierController extends Controller
         $supplier->delete();
 
         return redirect()->route('suppliers.index')->banner('Supplier deleted successfully.');
+    }
+
+    public function showProducts($id)
+    {
+        $supplier = Supplier::findOrFail($id);
+        $products = Product::where('supplier_id', $id)->with('category')->get();
+        
+        // Get stock transfers for all products from this supplier
+        $transfers = \DB::table('stock_transactions')
+            ->join('products', 'stock_transactions.product_id', '=', 'products.id')
+            ->where('products.supplier_id', $id)
+            ->select(
+                'stock_transactions.*',
+                'products.name as product_name'
+            )
+            ->orderBy('stock_transactions.created_at', 'desc')
+            ->get();
+
+        return Inertia::render('Suppliers/Show', [
+            'supplier' => $supplier,
+            'products' => $products,
+            'transfers' => $transfers,
+        ]);
     }
 }

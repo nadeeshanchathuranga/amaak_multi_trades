@@ -402,6 +402,7 @@
   </div>
 
   <ProductCreateModel
+    :products="props.products?.data || []"
     :categories="allcategories"
     :colors="colors"
     :sizes="sizes"

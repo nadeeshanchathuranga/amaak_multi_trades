@@ -195,28 +195,14 @@
                 </td>
                 <td class="p-4 text-center border-t border-gray-200">
                   <div class="inline-flex items-center w-full space-x-3">
-                    <!-- <button
-                      v-if="HasRole(['Admin'])"
-                      @click="
-                        () => {
-                          openEditModal(supplier);
-                        }
-                      "
-                      class="w-full px-4 py-2 font-medium text-[14px] tracking-wider text-white bg-gradient-to-r from-green-500 to-green-400 transition duration-150 ease-in-out rounded-md hover:from-green-600 hover:to-green-500"
+                    <!-- View Button -->
+                    <Link
+                      :href="`/suppliers/${supplier.id}/products`"
+                      class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                      title="View products and stock transfers"
                     >
-                      Edit
-                    </button>
-                    <button
-                      v-if="HasRole(['Admin'])"
-                      @click="
-                        () => {
-                          openDeleteModal(supplier);
-                        }
-                      "
-                      class="w-full px-4 py-2 font-medium text-[14px] tracking-wider text-white bg-gradient-to-r from-red-500 to-red-400 transition duration-150 ease-in-out rounded-md hover:from-red-600 hover:to-red-500"
-                    >
-                      Delete
-                    </button> -->
+                      View
+                    </Link>
 
                     <!-- Edit Button -->
                     <button
