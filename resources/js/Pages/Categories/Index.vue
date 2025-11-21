@@ -129,6 +129,9 @@
                   Name
                 </th>
                 <th class="p-4 font-semibold tracking-wide text-left uppercase">
+                  Commission
+                </th>
+                <th class="p-4 font-semibold tracking-wide text-left uppercase">
                   Parent Hierarchy
                 </th>
                 <th
@@ -146,6 +149,11 @@
               >
                 <td class="p-4 font-bold border-t border-gray-200">
                   {{ category.name || "N/A" }}
+                </td>
+                <td class="p-4 italic border-t border-gray-200">
+                  <span>
+                    {{ (category.commission !== undefined && category.commission !== null && category.commission !== '') ? (Number(category.commission).toFixed(2) + '%') : '0.00%' }}
+                  </span>
                 </td>
                 <td class="p-4 italic border-t border-gray-200">
                   {{ category.hierarchy_string || "N/A" }}

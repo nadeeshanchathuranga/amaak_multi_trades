@@ -25,6 +25,7 @@ use App\Http\Controllers\UnitController;
 use App\Http\Controllers\QuotationController;
 
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmployeeCommissionController;
 use App\Http\Controllers\StockTransactionController;
 use App\Http\Controllers\TransactionHistoryController;
 use App\Http\Controllers\ManualPosController;
@@ -101,6 +102,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('coupons', CouponController::class);
     Route::resource('sizes', SizeController::class);
     Route::resource('employees', EmployeeController::class);
+    
+    // Employee Commission Routes
+    Route::get('/cashier-commission', [EmployeeCommissionController::class, 'index'])->name('cashier-commission.index');
+    Route::get('/cashier-commission/{employee}', [EmployeeCommissionController::class, 'show'])->name('cashier-commission.show');
+    Route::get('/my-commission', [EmployeeCommissionController::class, 'mySummary'])->name('my-commission');
+    
     Route::resource('transactionHistory', TransactionHistoryController::class);
     Route::post('/transactions/delete', [TransactionHistoryController::class, 'destroy'])->name('transactions.delete');
     Route::resource('stock-transition', StockTransactionController::class);

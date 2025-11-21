@@ -13,4 +13,14 @@ class Employee extends Model
     protected $fillable = [
      'name', 'employee_id', 'address', 'email', 'phone'
     ];
+
+    public function commissions()
+    {
+        return $this->hasMany(EmployeeCommission::class, 'employee_id', 'id');
+    }
+
+    public function sales()
+    {
+        return $this->hasMany(Sale::class, 'employee_id', 'id');
+    }
 }
