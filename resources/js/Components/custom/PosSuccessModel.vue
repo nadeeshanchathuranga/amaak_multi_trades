@@ -102,10 +102,18 @@
    });
 
    const handlePrintReceipt = () => {
+       console.log('handlePrintReceipt called');
+       console.log('Products:', props.products);
+       console.log('Order ID:', props.orderid);
+       console.log('Payment Method:', props.paymentMethod);
+       
        // Calculate totals from props.products
        const subTotal = props.products.reduce(
-           (sum, product) =>
-               sum + parseFloat(product.selling_price) * product.quantity,
+           (sum, product) => {
+               const price = parseFloat(product.selling_price || product.unit_price || 0);
+               const qty = parseFloat(product.quantity || 0);
+               return sum + (price * qty);
+           },
            0
        );
        const customDiscount = Number(props.custom_discount || 0);
@@ -113,9 +121,9 @@
            .reduce((total, item) => {
                // Check if item has a discount
                if (item.discount && item.discount > 0 && item.apply_discount == true) {
-                   const discountAmount =
-                       (parseFloat(item.selling_price) - parseFloat(item.discounted_price)) *
-                       item.quantity;
+                   const sellingPrice = parseFloat(item.selling_price || item.unit_price || 0);
+                   const discountedPrice = parseFloat(item.discounted_price || 0);
+                   const discountAmount = (sellingPrice - discountedPrice) * item.quantity;
                    return total + discountAmount;
                }
                return total; // If no discount, return total as-is
@@ -129,13 +137,14 @@
        const productRows = props.products
            .map((product) => {
                // Determine the price based on discount
+               const basePrice = product.selling_price || product.unit_price || 0;
                const price = product.discount > 0 && product.apply_discount
                    ? product.discounted_price  // Use discounted price if discount is applied
-                   : product.selling_price;    // Use selling price if no discount
+                   : basePrice;    // Use selling price or unit price if no discount
 
                return `
            <tr>
-             <td>${product.name}</td>
+             <td>${product.name || 'Unknown'}</td>
            <td style="text-align: center;">
   ${product.quantity} ${product.unit_id ? (product.unit?.name || '') : ''}
 </td>
@@ -145,7 +154,7 @@
                        ? `<div style="font-weight: bold; font-size: 7px; background-color:black; color:white;text-align:center;">${product.discount}% off</div>`
                        : ""
                    }
-               <div>${product.selling_price}</div>
+               <div>${basePrice}</div>
              </td>
            </tr>
          `;

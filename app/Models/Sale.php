@@ -40,6 +40,11 @@ class Sale extends Model
         return $this->hasMany(SaleItem::class);
     }
 
+    public function items()
+    {
+        return $this->hasMany(SaleItem::class);
+    }
+
     public function employee()
     {
         return $this->belongsTo(Employee::class, 'employee_id','id');

@@ -140,6 +140,89 @@
                             </p>
                         </div>
 
+                        <!-- Return Items Section -->
+                        <div v-for="item in returnItems" :key="'return-' + item.id" 
+                            class="flex items-center w-full py-4 border-b-2 border-red-500 bg-red-50">
+                            <div class="flex w-1/6">
+                                <img :src="item.product?.image ? `/${item.product.image}` : '/images/placeholder.jpg'"
+                                    alt="Product Image" class="object-cover w-16 h-16 border border-gray-500" />
+                            </div>
+                            <div class="flex flex-col justify-between w-5/6">
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-2">
+                                            <p class="text-xl text-red-600 font-bold">RETURN: {{ item.product?.name }}</p>
+                                            <span class="px-2 py-1 bg-red-600 text-white text-xs rounded">Return Item</span>
+                                        </div>
+                                        <span v-if="item.return_type" 
+                                            :class="[
+                                                'px-3 py-1 text-sm font-bold rounded-lg',
+                                                item.return_type === 'cash' 
+                                                    ? 'bg-green-100 text-green-800 border-2 border-green-600' 
+                                                    : 'bg-blue-100 text-blue-800 border-2 border-blue-600'
+                                            ]">
+                                            {{ item.return_type === 'cash' ? '💵 CASH RETURN' : '🔄 P2P RETURN' }}
+                                        </span>
+                                    </div>
+                                    
+                                    <!-- Return Type Selection -->
+                                    <div class="flex items-center space-x-4 mt-2 p-3 bg-gray-50 rounded-lg border-2 border-gray-300">
+                                        <label class="text-lg font-semibold text-gray-700">Return Type:<span class="text-red-500">*</span></label>
+                                        <select v-model="item.return_type" @change="handleReturnTypeChange(item)" required
+                                            class="px-4 py-2 border-2 border-gray-400 rounded-lg text-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                                            <option value="" disabled>Select Return Type</option>
+                                            <option value="cash">💵 Cash Return</option>
+                                            <option value="p2p">🔄 Product-to-Product (P2P)</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- P2P Instruction -->
+                                    <div v-if="item.return_type === 'p2p'" class="mt-3 p-3 bg-blue-50 border border-blue-300 rounded-lg">
+                                        <p class="text-sm font-semibold text-blue-900 mb-1">📝 For Product-to-Product Exchange:</p>
+                                        <p class="text-sm text-gray-700">Please add the new product manually using the <span class="font-bold text-blue-600">"User Manual"</span> button above.</p>
+                                    </div>
+
+                                    <!-- Quantity and Price Controls -->
+                                    <div class="flex items-center justify-between w-full mt-3">
+                                        <div class="flex items-center space-x-4">
+                                            <span class="text-sm text-gray-600">Max: {{ item.remaining_quantity }}</span>
+                                            <div class="flex space-x-2">
+                                                <p @click="decrementReturnItemQuantity(item)"
+                                                    class="flex items-center justify-center w-8 h-8 text-white bg-red-600 rounded cursor-pointer">
+                                                    <i class="ri-subtract-line"></i>
+                                                </p>
+                                                <input type="number" v-model.number="item.return_quantity" min="1" :max="item.remaining_quantity"
+                                                    class="w-16 px-2 text-center border-2 border-black rounded" />
+                                                <p @click="incrementReturnItemQuantity(item)"
+                                                    class="flex items-center justify-center w-8 h-8 text-white bg-red-600 rounded cursor-pointer">
+                                                    <i class="ri-add-line"></i>
+                                                </p>
+                                            </div>
+                                            <span class="text-lg font-bold">@ {{ item.unit_price }} LKR</span>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-2xl font-bold text-red-600">-{{ (item.return_quantity * item.unit_price).toFixed(2) }} LKR</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Return Details -->
+                                    <div class="grid grid-cols-2 gap-2 mt-2">
+                                        <input v-model="item.reason" type="text" placeholder="Reason for return (required)"
+                                            class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                        <input v-model="item.return_date" type="date"
+                                            class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex justify-end w-1/6">
+                                <p @click="removeReturnItem(item)"
+                                    class="text-3xl text-red-600 border-2 border-red-600 rounded-full cursor-pointer hover:bg-red-600 hover:text-white">
+                                    <i class="ri-close-line"></i>
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Regular Products Section -->
                         <div class="flex items-center w-full py-4 border-b border-black" v-for="item in products"
                             :key="item.id">
                             <div class="flex w-1/6">
@@ -309,6 +392,10 @@
                                 <p class="text-xl">Discount</p>
                                 <p class="text-xl">( {{ totalDiscount }} LKR )</p>
                             </div>
+                            <div v-if="returnItems.length > 0" class="flex items-center justify-between w-full px-8 py-2 pb-4 border-b border-black bg-red-50">
+                                <p class="text-xl text-red-600 font-bold">Return Amount</p>
+                                <p class="text-xl text-red-600 font-bold">( {{ returnBillTotal.toFixed(2) }} LKR )</p>
+                            </div>
                             <!-- <div class="flex items-center justify-between w-full px-8 pt-4 pb-4 border-b border-black">
                 <p class="text-xl text-black">Custom Discount</p>
                 <span>
@@ -409,9 +496,9 @@
                                 <button @click="() => {
                                     submitOrder();
                                 }
-                                    " type="button" :disabled="products.length === 0" :class="[
+                                    " type="button" :disabled="products.length === 0 && returnItems.length === 0" :class="[
                                         'w-full bg-black py-4 text-2xl font-bold tracking-wider text-center text-white uppercase rounded-xl',
-                                        products.length === 0
+                                        (products.length === 0 && returnItems.length === 0)
                                             ? ' cursor-not-allowed'
                                             : ' cursor-pointer',
                                     ]">
@@ -425,7 +512,7 @@
         </div>
     </div>
     <PosSuccessModel :open="isSuccessModalOpen" @update:open="handleModalOpenUpdate" :products="products"
-        :employee="employee" :cashier="loggedInUser" :customer="customer" :orderid="orderid" :cash="cash"
+        :employee="employee" :cashier="loggedInUser" :customer="customer" :orderid="actualOrderId || orderid" :cash="cash"
         :balance="balance" :subTotal="subtotal" :totalDiscount="totalDiscount" :total="total"
         :custom_discount_type="custom_discount_type"
         :custom_discount="custom_discount" :paymentMethod="selectedPaymentMethod" :kokoSurcharge="kokoSurcharge" />
@@ -463,11 +550,9 @@
                         <div v-if="selectedSale" class="mt-6 p-4 border rounded-lg bg-gray-50">
                             <p class="text-lg font-medium">Selected Order Details:</p>
                             <div class="mt-4 space-y-2">
-                                <!-- <p><span class="font-bold"> ID:</span> {{ selectedSale.id }}</p> -->
                                 <p><span class="font-bold">Order ID:</span> {{ selectedSale.order_id }}</p>
-                                <p><span class="font-bold">Customer Name:</span> {{ selectedSale?.customer?.name ||
-                                    'N/A' }}</p>
-
+                                <p><span class="font-bold">Customer Name:</span> {{ selectedSale?.customer?.name || 'N/A' }}</p>
+                                <p><span class="font-bold">Employee:</span> {{ selectedSaleEmployee?.name || 'N/A' }}</p>
                                 <p><span class="font-bold">Total Amount:</span> {{ selectedSale.total_amount }}</p>
                                 <p><span class="font-bold">Discount:</span> {{ selectedSale.discount }}</p>
                                 <p><span class="font-bold">Payment Method:</span> {{ selectedSale.payment_method }}</p>
@@ -481,46 +566,28 @@
                             <table class="mt-4 w-full border-collapse border border-gray-200">
                                 <thead>
                                     <tr>
-                                        <th class="border border-gray-300 px-4 py-2">Product ID</th>
-                                        <th class="border border-gray-300 px-8 py-4">Quantity</th>
+                                        <th class="border border-gray-300 px-4 py-2">Product</th>
+                                        <th class="border border-gray-300 px-4 py-2">Max Quantity</th>
                                         <th class="border border-gray-300 px-4 py-2">Unit Price</th>
-                                        <th class="border border-gray-300 px-4 py-2">Total Price</th>
-                                        <th class="border border-gray-300 px-4 py-2">Reason</th>
-                                        <th class="border border-gray-300 px-4 py-2">Return Date</th>
                                         <th class="border border-gray-300 px-4 py-2">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr v-for="(item, index) in filteredSaleItems" :key="item.id">
                                         <td class="border border-gray-300 px-4 py-2">
-                                            <div class="pb-2"> {{ item.product.name }}</div>
+                                            <div class="pb-2">{{ item.product.name }}</div>
                                             <img :src="item.product.image ? `/${item.product.image}` : '/images/placeholder.jpg'"
                                                 alt="Product Image" class="w-20 h-20 object-cover rounded-lg" />
                                         </td>
-                                        <td class="border border-gray-300 px-4 py-2"><div class="flex items-center space-x-2"><p @click="incrementReturnQuantity(item.id)"
-                                            class="flex items-center justify-center w-8 h-8 text-white bg-black rounded cursor-pointer">
-                                            <i class="ri-add-line"></i>
-                                        </p><span class="px-2">{{ item.quantity }}</span><p @click="decrementReturnQuantity(item.id)"
-                                            class="flex items-center justify-center w-8 h-8 text-white bg-black rounded cursor-pointer">
-                                            <i class="ri-subtract-line"></i>
-                                        </p></div></td>
-                                        <td class="border border-gray-300 px-4 py-2">{{ item.unit_price }}</td>
-                                        <td class="border border-gray-300 px-4 py-2">{{ item.total_price }}</td>
                                         <td class="border border-gray-300 px-4 py-2">
-                                            <textarea v-model="item.reason" placeholder="Enter reason for return"
-                                                class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                                            <p class="text-lg font-semibold">{{ item.remaining_quantity || item.quantity }}</p>
+                                            <p class="text-sm text-gray-600">Available</p>
                                         </td>
+                                        <td class="border border-gray-300 px-4 py-2">{{ item.unit_price }} LKR</td>
                                         <td class="border border-gray-300 px-4 py-2">
-                                            <input v-model="item.return_date" type="date"
-                                                class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                        </td>
-                                        <td class="border border-gray-300 px-4 py-2">
-                                            <button @click="removeItem(index)" class="text-red-500 hover:text-red-700">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                                    stroke="currentColor" class="w-6 h-6">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
+                                            <button @click="addReturnItemToBilling(item)" 
+                                                class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                                                Add to Return
                                             </button>
                                         </td>
                                     </tr>
@@ -528,19 +595,21 @@
                             </table>
                             </div>
                         </div>
-                        <!-- Submit Button -->
+                        <!-- Instructions -->
+                        <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <p class="text-lg font-medium text-blue-900">Instructions:</p>
+                            <ol class="mt-2 ml-4 list-decimal text-blue-800">
+                                <li>Select products to return and click "Add to Return"</li>
+                                <li>Close this dialog</li>
+                                <li>Configure return details in the Billing Details section</li>
+                                <li>Click "Confirm Order" to process the return</li>
+                            </ol>
+                        </div>
 
                         <div class="flex justify-center gap-between w-full space-x-8">
-                            <button
-                                @click="handleReturnBillSave"
-                                class="px-8 py-3 text-lg font-bold tracking-wider text-white uppercase bg-blue-600 rounded-xl hover:bg-blue-700 focus:outline-none"
-                            >
-                                Save
-                            </button>
-
-                            <button type="button" @click="isReturnBillsModalOpen = false"
-                                    class="px-8 py-3 text-lg font-bold tracking-wider text-gray-700 uppercase bg-gray-300 rounded-xl hover:bg-gray-400 focus:outline-none">
-                                    Cancel
+                            <button type="button" @click="closeReturnModal"
+                                    class="px-8 py-3 text-lg font-bold tracking-wider text-white uppercase bg-blue-600 rounded-xl hover:bg-blue-700 focus:outline-none">
+                                    Done
                             </button>
                         </div>
                     </div>
@@ -583,6 +652,7 @@ const isSelectModalOpen = ref(false);
 // const isSelectChequeModalOpen = ref(false);
 const custom_discount_type = ref('percent');
 const orderid = computed(() => generateOrderId());
+const actualOrderId = ref(''); // For storing actual order IDs (returns, etc.)
 
 const errorMessage = ref("");
 
@@ -638,6 +708,7 @@ const onDiscountChange = (item) => {
 const handleModalOpenUpdate = (newValue) => {
     isSuccessModalOpen.value = newValue;
     if (!newValue) {
+        actualOrderId.value = ''; // Clear the actual order ID
         refreshData();
     }
 };
@@ -662,20 +733,77 @@ const props = defineProps({
 
 const sales = ref([]);
 const saleItemsState = ref([]);
+const selectedSaleEmployee = ref(null);
+const returnItems = ref([]);
+
+const handleReturnTypeChange = (item) => {
+    // P2P returns will be handled by manually adding products
+    // No need to clear fields as they won't be used
+};
+
+// P2P exchange products are now added via User Manual Product Add
+// These helper functions are no longer needed
+
+const addReturnItemToBilling = (saleItem) => {
+    // Check if already added
+    const existing = returnItems.value.find(r => r.sale_item_id === saleItem.id);
+    if (existing) {
+        errorMessage.value = "This item is already added for return";
+        return;
+    }
+
+    // Add to return items
+    returnItems.value.push({
+        id: saleItem.id,
+        sale_item_id: saleItem.id,
+        product_id: saleItem.product_id,
+        product: saleItem.product,
+        unit_price: saleItem.unit_price,
+        return_quantity: 1,
+        remaining_quantity: saleItem.remaining_quantity || saleItem.quantity,
+        return_type: 'cash',
+        reason: '',
+        return_date: new Date().toISOString().split('T')[0],
+        sale_id: ReturnbillForm.order_id,
+    });
+};
+
+const removeReturnItem = (item) => {
+    returnItems.value = returnItems.value.filter(r => r.id !== item.id);
+};
+
+const incrementReturnItemQuantity = (item) => {
+    if (item.return_quantity < item.remaining_quantity) {
+        item.return_quantity += 1;
+    }
+};
+
+const decrementReturnItemQuantity = (item) => {
+    if (item.return_quantity > 1) {
+        item.return_quantity -= 1;
+    }
+};
+
+const closeReturnModal = () => {
+    isReturnBillsModalOpen.value = false;
+    errorMessage.value = '';
+};
 
 const incrementReturnQuantity = (id) => {
     const item = saleItemsState.value.find((item) => item.id === id);
     if (item) {
-        item.quantity += 1;
-        item.total_price = item.unit_price * item.quantity; // Update total price
+        const maxQty = item.remaining_quantity || item.quantity;
+        if (!item.return_quantity) item.return_quantity = 1;
+        if (item.return_quantity < maxQty) {
+            item.return_quantity += 1;
+        }
     }
 };
 
 const decrementReturnQuantity = (id) => {
     const item = saleItemsState.value.find((item) => item.id === id);
-    if (item && item.quantity > 1) {
-        item.quantity -= 1;
-        item.total_price = item.unit_price * item.quantity; // Update total price
+    if (item && item.return_quantity > 1) {
+        item.return_quantity -= 1;
     }
 };
 const discount = ref(0);
@@ -692,16 +820,44 @@ const customer = ref({
     email: "",
 });
 
-const handleReturnBillSave = () => {
-    const missingReason = filteredSaleItems.value.some(item => !item.reason.trim());
-    if(missingReason){
-     errorMessage.value = "Please provide a reason for all return items";
-    return;
+const validateReturnItems = () => {
+    if (returnItems.value.length === 0) {
+        return { valid: false, message: "No items selected for return" };
     }
-    errorMessage.value = "";
-    isReturnBillsModalOpen.value = false
 
+    // Validate all items have return types selected
+    const missingReturnType = returnItems.value.some(item => !item.return_type);
+    if (missingReturnType) {
+        return { valid: false, message: "Please select Return Type (Cash or P2P) for all return items" };
+    }
 
+    // Validate all items have reasons
+    const missingReason = returnItems.value.some(item => !item.reason || !item.reason.trim());
+    if (missingReason) {
+        return { valid: false, message: "Please provide a reason for all return items" };
+    }
+
+    // Validate return quantities
+    const invalidQuantity = returnItems.value.some(item => !item.return_quantity || item.return_quantity < 1);
+    if (invalidQuantity) {
+        return { valid: false, message: "Please enter valid return quantities" };
+    }
+
+    // For P2P returns, verify that products have been added via User Manual
+    const hasP2PReturns = returnItems.value.some(item => item.return_type === 'p2p');
+    if (hasP2PReturns && products.value.length === 0) {
+        return { valid: false, message: "For P2P returns, please add the new product(s) using User Manual Product Add" };
+    }
+
+    // Validate that return quantities don't exceed remaining quantities
+    const exceedsRemaining = returnItems.value.some(item => 
+        item.return_quantity > item.remaining_quantity
+    );
+    if (exceedsRemaining) {
+        return { valid: false, message: "Return quantity cannot exceed remaining quantity" };
+    }
+
+    return { valid: true };
 };
 
 
@@ -771,68 +927,193 @@ const orderId = computed(() => {
 });
 
 const submitOrder = async () => {
-    // if (window.confirm("Are you sure you want to confirm the order?")) {
-    // console.log(products.value);
-    if (balance.value < 0) {
+    // Check if this is a return transaction
+    if (returnItems.value.length > 0) {
+        const validation = validateReturnItems();
+        if (!validation.valid) {
+            isAlertModalOpen.value = true;
+            message.value = validation.message;
+            return;
+        }
+    }
+
+    // Only check balance for regular sales, not for returns
+    if (balance.value < 0 && products.value.length > 0 && returnItems.value.length === 0) {
         isAlertModalOpen.value = true;
         message.value = "Cash is not enough";
         return;
     }
+    
     try {
-
-        const returnItemsData = saleItemsState.value.map(item => ({
-            sale_id: ReturnbillForm.order_id,
-            customer_id: selectedSale.value?.customer_id || null,
+        // Prepare return items data
+        const returnItemsData = returnItems.value.map(item => ({
+            sale_id: item.sale_id,
+            sale_item_id: item.sale_item_id,
             product_id: item.product_id,
-            quantity: item.quantity,
+            quantity: item.return_quantity,
             reason: item.reason,
-            unit_price: item.unit_price,    // Make sure this is included
-            return_date: item.return_date || new Date().toISOString().split('T')[0], // Default to today if not provided
+            unit_price: item.unit_price,
+            return_date: item.return_date,
+            return_type: item.return_type,
         }));
 
-        const response = await axios.post("/pos/submit", {
-            customer: customer.value,
-            products: products.value,
-            employee_id: employee_id.value,
-            paymentMethod: selectedPaymentMethod.value,
-            userId: props.loggedInUser.id,
-            orderid: orderid.value,
-            cash: cash.value,
-            custom_discount: custom_discount.value,
-            custom_discount_type: custom_discount_type.value, // Add this
-            appliedCoupon: appliedCoupon.value, // Add this
-            return_items: returnItemsData // Add this
-        });
+        // Check if we have P2P returns with manually added products
+        const hasP2PReturns = returnItems.value.some(item => item.return_type === 'p2p');
+        const hasNewProducts = products.value.length > 0;
 
-        isSuccessModalOpen.value = true;
-        console.log(response.data); // Handle success
+        // For P2P returns with new products, send to return endpoint with new products
+        if (returnItems.value.length > 0 && hasP2PReturns && hasNewProducts) {
+            // P2P Return with new products - Creates separate bill
+            const newProductsData = products.value.map(product => ({
+                product_id: product.id,
+                quantity: product.quantity,
+                selling_price: product.selling_price,
+            }));
+
+            const response = await axios.post('/return-bill', {
+                return_items: returnItemsData,
+                new_products: newProductsData
+            });
+
+            if (response.data.success) {
+                const returnBillData = response.data.return_bill_data;
+                const returnOrderId = response.data.return_order_id;
+                const returnSaleData = response.data.return_sale_data;
+                
+                // If P2P return, show success modal with print option
+                if (returnSaleData) {
+                    // Update all the reactive variables used by the modal
+                    actualOrderId.value = returnSaleData.order_id;
+                    customer.value = returnSaleData.customer;
+                    employee.value = returnSaleData.employee;
+                    products.value = returnSaleData.items;
+                    cash.value = returnSaleData.total_amount;
+                    custom_discount.value = 0;
+                    selectedPaymentMethod.value = returnSaleData.payment_method;
+                    
+                    // Show the success modal with print option
+                    isSuccessModalOpen.value = true;
+                    
+                    console.log('P2P Return Bill Data for Print:', returnSaleData);
+                } else {
+                    // Fallback to alert modal
+                    isAlertModalOpen.value = true;
+                    message.value = `P2P Return Bill Created Successfully!\n\n` +
+                        `Return Bill ID: ${returnOrderId}\n` +
+                        `Returned Amount: ${returnBillData.totals.return_amount.toFixed(2)} LKR\n` +
+                        `New Product Amount: ${returnBillData.totals.new_product_amount.toFixed(2)} LKR\n` +
+                        `Net Amount: ${returnBillData.totals.net_amount.toFixed(2)} LKR\n\n` +
+                        `Original Sale Updated. New Return Bill Created.`;
+                }
+                
+                console.log('P2P Return Bill Data:', {
+                    return_order_id: returnOrderId,
+                    original_sale_id: response.data.original_sale_id,
+                    return_sale_id: response.data.return_sale_id,
+                    ...returnBillData
+                });
+                
+                // Clear data
+                returnItems.value = [];
+                products.value = [];
+                ReturnbillForm.order_id = "";
+                selectedSale.value = null;
+                selectedSaleEmployee.value = null;
+                
+                refreshData();
+            }
+        }
+        // Cash return only (no new products)
+        else if (returnItems.value.length > 0 && !hasNewProducts) {
+            const response = await axios.post('/return-bill', {
+                return_items: returnItemsData
+            });
+
+            if (response.data.success) {
+                const returnBillData = response.data.return_bill_data;
+                const cashReturnData = response.data.cash_return_data;
+                
+                // Show return receipt with print option if data is available
+                if (cashReturnData) {
+                    // Prepare data for the success modal
+                    actualOrderId.value = cashReturnData.order_id;
+                    customer.value = cashReturnData.customer;
+                    employee.value = cashReturnData.employee;
+                    products.value = cashReturnData.return_items;
+                    cash.value = cashReturnData.total_amount;
+                    custom_discount.value = 0;
+                    selectedPaymentMethod.value = cashReturnData.payment_method;
+                    
+                    // Show success modal with print option
+                    isSuccessModalOpen.value = true;
+                    
+                    console.log('Cash Return Receipt Data:', cashReturnData);
+                } else {
+                    // Fallback to alert modal
+                    isAlertModalOpen.value = true;
+                    message.value = `Cash Return Processed Successfully!\n\n` +
+                        `Returned Amount: ${returnBillData.totals.return_amount.toFixed(2)} LKR\n` +
+                        `Original Sale Total Updated.`;
+                }
+                
+                // Clear return items
+                returnItems.value = [];
+                ReturnbillForm.order_id = "";
+                selectedSale.value = null;
+                selectedSaleEmployee.value = null;
+                
+                refreshData();
+            }
+        } 
+        // Regular sale (no returns)
+        else {
+            const response = await axios.post("/pos/submit", {
+                customer: customer.value,
+                products: products.value,
+                employee_id: employee_id.value,
+                paymentMethod: selectedPaymentMethod.value,
+                userId: props.loggedInUser.id,
+                orderid: orderid.value,
+                cash: cash.value,
+                custom_discount: custom_discount.value,
+                custom_discount_type: custom_discount_type.value,
+                appliedCoupon: appliedCoupon.value,
+                return_items: returnItemsData
+            });
+
+            isSuccessModalOpen.value = true;
+            console.log(response.data);
+            
+            // Clear return items if any
+            returnItems.value = [];
+        }
     } catch (error) {
-        if (error.response.status === 423) {
+        if (error.response && error.response.status === 423) {
             isAlertModalOpen.value = true;
             message.value = error.response.data.message;
         }
         console.error(
-            "Error submitting customer details:",
+            "Error submitting order:",
             error.response?.data || error.message
         );
-        // alert("Failed to submit customer details. Please try again.");
+        isAlertModalOpen.value = true;
+        message.value = error.response?.data?.error || "Failed to process order. Please try again.";
     }
 };
 
 const filteredSaleItems = computed(() => {
-    if (!props.saleItems || !Array.isArray(props.saleItems)) {
-        return [];
-    }
-
-    const items = props.saleItems.filter((item) => item.sale_id === ReturnbillForm.order_id);
-    saleItemsState.value = items.map((item) => ({ ...item, reason: "", return_date: "" }));
     return saleItemsState.value;
 });
 
 const returnBillTotal = computed(() => {
-    if (!filteredSaleItems.value.length) return 0;
-    return filteredSaleItems.value.reduce((sum, item) => {
-        return sum + (parseFloat(item.total_price) || 0);
+    if (!returnItems.value.length) return 0;
+    
+    // Calculate total return amount for ALL returns (cash and P2P)
+    // P2P returns will show as deduction, and manually added products will add to the total
+    return returnItems.value.reduce((sum, item) => {
+        const returnQty = item.return_quantity || 1;
+        const unitPrice = parseFloat(item.unit_price) || 0;
+        return sum + (returnQty * unitPrice);
     }, 0);
 });
 // };
@@ -855,6 +1136,40 @@ const removeItem = (index) => {
 };
 
 // Watch for order_id changes to load sale details
+watch(() => ReturnbillForm.order_id, async (newOrderId) => {
+    if (newOrderId) {
+        try {
+            // Fetch sale items with remaining quantities
+            const response = await axios.post('/api/sale/items', {
+                sale_id: newOrderId
+            });
+            
+            // Set employee info
+            selectedSaleEmployee.value = response.data.employee;
+            
+            // Initialize sale items with return fields
+            saleItemsState.value = response.data.saleItems.map((item) => ({
+                ...item,
+                reason: "",
+                return_date: new Date().toISOString().split('T')[0],
+                return_type: "cash",
+                return_quantity: 1,
+                new_product_id: null,
+                new_product_amount: null,
+            }));
+        } catch (error) {
+            console.error('Error fetching sale items:', error);
+            errorMessage.value = "Failed to load sale items. Please try again.";
+            saleItemsState.value = [];
+            selectedSaleEmployee.value = null;
+        }
+    } else {
+        saleItemsState.value = [];
+        selectedSaleEmployee.value = null;
+    }
+});
+
+// Keep the original watch for backward compatibility
 // watch(() => ReturnbillForm.order_id, async (newOrderId) => {
 //     if (newOrderId) {
 //         try {
@@ -875,12 +1190,12 @@ watch(
     () => ReturnbillForm.order_id,
     (newValue) => {
         const sale = props.sales.find((sale) => sale.id === newValue) || null;
+        selectedSale.value = sale;
         if (sale) {
             ReturnbillForm.discount = sale.discount || 0;
         } else {
             ReturnbillForm.discount = 0; // Default if no sale is found
         }
-        console.log(sale);
     }
 );
 
