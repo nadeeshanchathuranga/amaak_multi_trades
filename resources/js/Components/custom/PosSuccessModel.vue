@@ -24,18 +24,18 @@
                      </div>
                   </div>
                   <div class="flex justify-center items-center space-x-4 pt-4 mt-4">
-                     <p
-                        class="cursor-pointer bg-blue-600 text-white font-bold uppercase tracking-wider px-4 shadow-xl   py-4 rounded-xl">
+                     <button
+                        class="cursor-pointer bg-blue-600 text-white font-bold uppercase tracking-wider px-4 shadow-xl py-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                         Send Reciept To Email
-                     </p>
-                     <p @click="handlePrintReceipt"
-                        class="cursor-pointer bg-blue-600 text-white font-bold uppercase tracking-wider px-4 shadow-xl   py-4 rounded-xl">
+                     </button>
+                     <button @click="(e) => { e.stopPropagation(); handlePrintReceipt(); }"
+                        class="cursor-pointer bg-blue-600 text-white font-bold uppercase tracking-wider px-4 shadow-xl py-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                         Print Receipt
-                     </p>
-                     <p @click="$emit('update:open', false)"
-                        class="cursor-pointer bg-red-600 text-white font-bold uppercase tracking-wider px-4 shadow-xl   py-4 rounded-xl">
+                     </button>
+                     <button @click="$emit('update:open', false)"
+                        class="cursor-pointer bg-red-600 text-white font-bold uppercase tracking-wider px-4 shadow-xl py-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                         Close
-                     </p>
+                     </button>
                   </div>
                </DialogPanel>
             </TransitionChild>
@@ -59,12 +59,6 @@
 
    // Access the companyInfo from the page props
    const companyInfo = computed(() => page.props.companyInfo);
-
-   if (companyInfo.value) {
-       console.log(companyInfo.value);
-   } else {
-       console.log('companyInfo is undefined or null');
-   }
 
    const handleClose = () => {
        console.log("Modal close prevented");
@@ -92,13 +86,13 @@
        orderid: String,
        balance: Number,
        cash: Number,
-       subTotal: String,
-       totalDiscount: String,
-       total: String,
+       subTotal: Number,
+       totalDiscount: Number,
+       total: Number,
        custom_discount: Number,
        custom_discount_type: String,
        paymentMethod: String,
-       kokoSurcharge: String
+       kokoSurcharge: Number
    });
 
    const handlePrintReceipt = () => {
@@ -284,7 +278,7 @@
              <p>Date:</p>
              <small>${new Date().toLocaleDateString()} </small>
            </div>
-           <div style="text-align: right;">
+           <div>
              <p>Order No:</p>
              <small>${props.orderid}</small>
            </div>
@@ -294,7 +288,7 @@
              <p>Customer:</p>
              <small>${props.customer.name}</small>
            </div>
-           <div style="text-align: right;">
+           <div>
              <p>Cashier:</p>
              <small>${props.cashier.name}</small>
            </div>
@@ -397,23 +391,34 @@
      </html>
      `;
 
-       // Open a new window
-       const printWindow = window.open("", "_blank");
-       if (!printWindow) {
-           alert("Failed to open print window. Please check your browser settings.");
-           return;
+       // Create or get the print iframe
+       let printFrame = document.getElementById('printFrame');
+       if (!printFrame) {
+           printFrame = document.createElement('iframe');
+           printFrame.id = 'printFrame';
+           printFrame.style.position = 'absolute';
+           printFrame.style.top = '-10000px';
+           printFrame.style.left = '-10000px';
+           printFrame.style.width = '0';
+           printFrame.style.height = '0';
+           printFrame.style.border = 'none';
+           document.body.appendChild(printFrame);
        }
 
-       // Write the content to the new window
-       printWindow.document.open();
-       printWindow.document.write(receiptHTML);
-       printWindow.document.close();
+       // Write content to iframe
+       let frameDoc = printFrame.contentWindow || printFrame.contentDocument;
+       if (frameDoc && frameDoc.document) {
+           frameDoc = frameDoc.document;
+       }
+       
+       frameDoc.open();
+       frameDoc.write(receiptHTML);
+       frameDoc.close();
 
-       // Wait for the content to load before triggering print
-       printWindow.onload = () => {
-           printWindow.focus();
-           printWindow.print();
-           printWindow.close();
-       };
+       // Print after a short delay to ensure content is loaded
+       setTimeout(() => {
+           printFrame.contentWindow.focus();
+           printFrame.contentWindow.print();
+       }, 500);
    };
 </script>

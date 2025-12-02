@@ -29,32 +29,24 @@
                     <div class="flex flex-col w-full">
                         <div class="p-16 space-y-8 bg-black shadow-lg rounded-3xl">
                             <p class="mb-4 text-5xl font-bold text-white">Customer Details</p>
-                            <div class="mb-3">
+                            <div v-if="customer" class="mb-3">
                                 <input v-model="customer.name" type="text" placeholder="Enter Customer Name"
                                     class="w-full px-4 py-4 text-black placeholder-black bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
                             </div>
-                            <div class="flex gap-2 mb-3 text-black">
-                                <!-- <select
-                  v-model="customer.countryCode"
-                  class="w-[60px] px-2 py-2 bg-white placeholder-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="+94">+94</option>
-                  <option value="+1">+1</option>
-                  <option value="+44">+44</option>
-                </select> -->
+                            <div v-if="customer" class="flex gap-2 mb-3 text-black">
                                 <input v-model="customer.contactNumber" type="text"
                                     placeholder="Enter Customer Contact Number"
                                     class="flex-grow px-4 py-4 text-black placeholder-black bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
                             </div>
-                            <div class="text-black">
+                            <div v-if="customer" class="text-black">
                                 <input v-model="customer.email" type="email" placeholder="Enter Customer Email"
                                     class="w-full px-4 py-4 text-black placeholder-black bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
                             </div>
 
                             <div class="text-black">
-                                <select required v-model="employee_id" id="employee_id"
+                                <select v-model="employee_id" id="employee_id"
                                     class="w-full px-4 py-4 text-black placeholder-black bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="" disabled selected>Select an Employee</option>
+                                    <option value="" disabled selected>Select an Employee (Optional)</option>
                                     <option v-for="employee in allemployee" :key="employee.id" :value="employee.id">
                                         {{ employee.name }}
                                     </option>
@@ -511,8 +503,8 @@
             </div>
         </div>
     </div>
-    <PosSuccessModel :open="isSuccessModalOpen" @update:open="handleModalOpenUpdate" :products="products"
-        :employee="employee" :cashier="loggedInUser" :customer="customer" :orderid="actualOrderId || orderid" :cash="cash"
+    <PosSuccessModel :open="isSuccessModalOpen" @update:open="handleModalOpenUpdate" :products="isReturnBillPrinted ? modalProducts : products"
+        :employee="modalEmployee" :cashier="loggedInUser" :customer="modalCustomer" :orderid="actualOrderId || orderid" :cash="cash"
         :balance="balance" :subTotal="subtotal" :totalDiscount="totalDiscount" :total="total"
         :custom_discount_type="custom_discount_type"
         :custom_discount="custom_discount" :paymentMethod="selectedPaymentMethod" :kokoSurcharge="kokoSurcharge" />
@@ -626,7 +618,7 @@ import Banner from "@/Components/Banner.vue";
 import PosSuccessModel from "@/Components/custom/PosSuccessModel.vue";
 import AlertModel from "@/Components/custom/AlertModel.vue";
 import { useForm, router } from "@inertiajs/vue3";
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, computed, watch, nextTick } from "vue";
 import { Head } from "@inertiajs/vue3";
 import { Link } from "@inertiajs/vue3";
 import axios from "axios";
@@ -644,6 +636,7 @@ const products = ref([]);
 const isSuccessModalOpen = ref(false);
 const isAlertModalOpen = ref(false);
 const isReturnBillsModalOpen = ref(false);
+const isReturnBillPrinted = ref(false); // Track if this is a return bill print modal
 const message = ref("");
 const appliedCoupon = ref(null);
 const cash = ref(0);
@@ -709,7 +702,12 @@ const handleModalOpenUpdate = (newValue) => {
     isSuccessModalOpen.value = newValue;
     if (!newValue) {
         actualOrderId.value = ''; // Clear the actual order ID
-        refreshData();
+        // Only refresh for regular sales, not for return bills
+        if (!isReturnBillPrinted.value) {
+            refreshData();
+        } else {
+            isReturnBillPrinted.value = false; // Reset the flag for next transaction
+        }
     }
 };
 
@@ -872,6 +870,9 @@ const ReturnbillForm = useForm({
 });
 
 const employee_id = ref("");
+const modalEmployee = ref({ name: "" }); // Separate ref for modal display
+const modalCustomer = ref({ name: "", contactNumber: "", email: "" }); // Separate ref for modal
+const modalProducts = ref([]); // Separate ref for modal products - DON'T use main products!
 
 const employee = computed(() => {
   if (!employee_id.value) return null;
@@ -982,14 +983,17 @@ const submitOrder = async () => {
                 
                 // If P2P return, show success modal with print option
                 if (returnSaleData) {
-                    // Update all the reactive variables used by the modal
-                    actualOrderId.value = returnSaleData.order_id;
-                    customer.value = returnSaleData.customer;
-                    employee.value = returnSaleData.employee;
-                    products.value = returnSaleData.items;
-                    cash.value = returnSaleData.total_amount;
+                    // Update all the reactive variables used by the modal - use MODAL refs only
+                    actualOrderId.value = returnSaleData.order_id || "";
+                    modalCustomer.value = returnSaleData.customer || { name: "", contactNumber: "", email: "" };
+                    modalEmployee.value = returnSaleData.employee || { name: "" };
+                    modalProducts.value = returnSaleData.items || []; // Use modalProducts instead of products
+                    cash.value = returnSaleData.total_amount || 0;
                     custom_discount.value = 0;
-                    selectedPaymentMethod.value = returnSaleData.payment_method;
+                    selectedPaymentMethod.value = returnSaleData.payment_method || "";
+                    
+                    // Mark this as a return bill print modal (no auto-refresh on close)
+                    isReturnBillPrinted.value = true;
                     
                     // Show the success modal with print option
                     isSuccessModalOpen.value = true;
@@ -1013,18 +1017,75 @@ const submitOrder = async () => {
                     ...returnBillData
                 });
                 
-                // Clear data
+                // Clear data and close return form modal
+                // DON'T clear products.value immediately - it may still have POS items
+                await nextTick();
                 returnItems.value = [];
-                products.value = [];
+                products.value = []; // Only clear if this was the only operation
                 ReturnbillForm.order_id = "";
                 selectedSale.value = null;
                 selectedSaleEmployee.value = null;
+                isReturnBillsModalOpen.value = false; // Close the return form modal
                 
-                refreshData();
+                // Don't refresh immediately if modal is showing - let user print first
+                if (!returnSaleData) {
+                    refreshData();
+                }
             }
         }
-        // Cash return only (no new products)
-        else if (returnItems.value.length > 0 && !hasNewProducts) {
+        // P2P Return only (item-to-item, no new products)
+        else if (returnItems.value.length > 0 && hasP2PReturns && !hasNewProducts) {
+            const response = await axios.post('/return-bill', {
+                return_items: returnItemsData
+            });
+
+            if (response.data.success) {
+                const returnBillData = response.data.return_bill_data;
+                const returnSaleData = response.data.return_sale_data;
+                
+                // Show return receipt with print option if data is available
+                if (returnSaleData) {
+                    // Prepare data for the success modal - use MODAL refs only
+                    actualOrderId.value = returnSaleData.order_id || "";
+                    modalCustomer.value = returnSaleData.customer || { name: "", contactNumber: "", email: "" };
+                    modalEmployee.value = returnSaleData.employee || { name: "" };
+                    modalProducts.value = returnSaleData.items || []; // Use modalProducts instead of products
+                    cash.value = returnSaleData.total_amount || 0;
+                    custom_discount.value = 0;
+                    selectedPaymentMethod.value = returnSaleData.payment_method || "P2P Return";
+                    
+                    // Mark this as a return bill print modal (no auto-refresh on close)
+                    isReturnBillPrinted.value = true;
+                    
+                    // Show success modal with print option
+                    isSuccessModalOpen.value = true;
+                    
+                    console.log('P2P Return Receipt Data:', returnSaleData);
+                } else {
+                    // Fallback to alert modal
+                    isAlertModalOpen.value = true;
+                    message.value = `P2P Return Processed Successfully!\n\n` +
+                        `Returned Items: ${returnBillData.totals.return_items_count || returnItems.value.length}\n` +
+                        `Returned Amount: ${returnBillData.totals.return_amount.toFixed(2)} LKR\n` +
+                        `Original Sale Total Updated.`;
+                }
+                
+                // Clear return items and close the return form modal
+                // Use nextTick to ensure modal is fully rendered before clearing
+                await nextTick();
+                returnItems.value = [];
+                // DON'T clear products.value - it belongs to main POS!
+                ReturnbillForm.order_id = "";
+                selectedSale.value = null;
+                selectedSaleEmployee.value = null;
+                isReturnBillsModalOpen.value = false; // Close the return form modal
+                
+                // Don't refresh immediately - let user print the receipt first
+                // refreshData will be called when modal closes
+            }
+        }
+        // Cash return only (no new products, no P2P)
+        else if (returnItems.value.length > 0 && !hasP2PReturns && !hasNewProducts) {
             const response = await axios.post('/return-bill', {
                 return_items: returnItemsData
             });
@@ -1035,14 +1096,17 @@ const submitOrder = async () => {
                 
                 // Show return receipt with print option if data is available
                 if (cashReturnData) {
-                    // Prepare data for the success modal
-                    actualOrderId.value = cashReturnData.order_id;
-                    customer.value = cashReturnData.customer;
-                    employee.value = cashReturnData.employee;
-                    products.value = cashReturnData.return_items;
-                    cash.value = cashReturnData.total_amount;
+                    // Prepare data for the success modal - use MODAL refs only
+                    actualOrderId.value = cashReturnData.order_id || "";
+                    modalCustomer.value = cashReturnData.customer || { name: "", contactNumber: "", email: "" };
+                    modalEmployee.value = cashReturnData.employee || { name: "" };
+                    modalProducts.value = cashReturnData.return_items || []; // Use modalProducts instead of products
+                    cash.value = cashReturnData.total_amount || 0;
                     custom_discount.value = 0;
-                    selectedPaymentMethod.value = cashReturnData.payment_method;
+                    selectedPaymentMethod.value = cashReturnData.payment_method || "Cash Return";
+                    
+                    // Mark this as a return bill print modal (no auto-refresh on close)
+                    isReturnBillPrinted.value = true;
                     
                     // Show success modal with print option
                     isSuccessModalOpen.value = true;
@@ -1056,13 +1120,18 @@ const submitOrder = async () => {
                         `Original Sale Total Updated.`;
                 }
                 
-                // Clear return items
+                // Clear return items and close return form modal
+                // Use nextTick to ensure modal is fully rendered before clearing
+                await nextTick();
                 returnItems.value = [];
+                // DON'T clear products.value - it belongs to main POS!
                 ReturnbillForm.order_id = "";
                 selectedSale.value = null;
                 selectedSaleEmployee.value = null;
+                isReturnBillsModalOpen.value = false; // Close the return form modal
                 
-                refreshData();
+                // Don't refresh immediately - let user print the receipt first
+                // refreshData will be called when modal closes
             }
         } 
         // Regular sale (no returns)
@@ -1201,12 +1270,12 @@ watch(
 
 
 const subtotal = computed(() => {
-    return products.value
+    return parseFloat(products.value
         .reduce(
             (total, item) => total + parseFloat(item.selling_price) * item.quantity,
             0
         )
-        .toFixed(2); // Ensures two decimal places
+        .toFixed(2)); // Ensures two decimal places
 });
 
 const totalDiscount = computed(() => {
@@ -1225,7 +1294,7 @@ const totalDiscount = computed(() => {
         ? Number(appliedCoupon.value.discount)
         : 0;
 
-    return (productDiscount + couponDiscount).toFixed(2);
+    return parseFloat((productDiscount + couponDiscount).toFixed(2));
 });
 
 const validateCustomDiscount = () => {
@@ -1260,7 +1329,7 @@ const total = computed(() => {
         baseTotal += kokoSurcharge;
     }
 
-    return baseTotal.toFixed(2);
+    return parseFloat(baseTotal.toFixed(2));
 });
 
 const kokoSurcharge = computed(() => {
@@ -1279,16 +1348,16 @@ const kokoSurcharge = computed(() => {
         }
 
         const baseTotal = subtotalValue - discountValue - customValue - returnAmount;
-        return (baseTotal * 0.115).toFixed(2); // 11.5% surcharge
+        return parseFloat((baseTotal * 0.115).toFixed(2)); // 11.5% surcharge
     }
-    return '0.00';
+    return 0;
 });
 
 const balance = computed(() => {
     if (cash.value == null || cash.value === 0) {
         return 0; // If cash.value is null or 0, return 0
     }
-    return (parseFloat(cash.value) - parseFloat(total.value)).toFixed(2);
+    return parseFloat((parseFloat(cash.value) - parseFloat(total.value)).toFixed(2));
 });
 // Check for product or handle errors
 const form = useForm({
