@@ -324,8 +324,8 @@ function generateAndPrintBarcode() {
   JsBarcode(barcodePrintElement, input, {
     format: "CODE128", // Code 128 is compact and ideal for small labels
     lineColor: "#000", // Black lines for high contrast
-    width: 0.8, // Reduced bar width to make barcode smaller
-    height: 25, // Reduced barcode height
+    width: 1.2, // Increased bar width for better scanning
+    height: 40, // Increased barcode height for better scanning
     displayValue: false, // Disable text display
     margin: 0, // Remove default margins
   });
@@ -383,8 +383,8 @@ function generateAndPrintBarcode() {
 
   /* Barcode centered and sized for 30mm label */
   #barcodePrint {
-    width: 24mm;
-    height: 8mm;
+    width: 27mm;
+    height: 11mm;
     margin: 0.5mm auto;
     display: block;
   }
@@ -395,9 +395,9 @@ function generateAndPrintBarcode() {
     justify-content: space-between;
     align-items: center;
     width: 28mm;
-    font-size: 10px;
+    font-size: 8px;
     font-weight: bold;
-    margin: 0.5mm 0 0 0;
+    margin: 0.3mm 0 0 0;
     padding: 0;
   }
 
@@ -411,16 +411,16 @@ function generateAndPrintBarcode() {
   }
 
   .product-price {
-    font-size: 12px;
+    font-size: 9px;
     text-align: right;
   }
 
   /* Product code */
   .product-code {
     color: #000;
-    font-size: 11px;
+    font-size: 9px;
     font-weight: bold;
-    margin: 0.5mm 0;
+    margin: 0.3mm 0;
     padding: 0;
     white-space: nowrap;
     width: 28mm;
