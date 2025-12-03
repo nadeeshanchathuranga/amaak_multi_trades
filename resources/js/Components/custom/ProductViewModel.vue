@@ -241,7 +241,7 @@
                       {{ selectedProduct?.code ?? "N/A" }}
                     </p>
                     <p class="product-price">
-                      {{ selectedProduct?.selling_price ?? "N/A" }} LKR
+                      {{ selectedProduct?.selling_price ?? "N/A" }}
                     </p>
                   </div>
                 </div>
@@ -324,8 +324,8 @@ function generateAndPrintBarcode() {
   JsBarcode(barcodePrintElement, input, {
     format: "CODE128", // Code 128 is compact and ideal for small labels
     lineColor: "#000", // Black lines for high contrast
-    width: 1, // Bar width for 30mm label
-    height: 35, // Barcode height for 20mm label (leaving space for text)
+    width: 0.8, // Reduced bar width to make barcode smaller
+    height: 25, // Reduced barcode height
     displayValue: false, // Disable text display
     margin: 0, // Remove default margins
   });
@@ -383,9 +383,10 @@ function generateAndPrintBarcode() {
 
   /* Barcode centered and sized for 30mm label */
   #barcodePrint {
-    width: 28mm;
-    height: 10mm;
-    margin: 0 auto;
+    width: 24mm;
+    height: 8mm;
+    margin: 0.5mm auto;
+    display: block;
   }
 
   /* Product details */
@@ -394,7 +395,7 @@ function generateAndPrintBarcode() {
     justify-content: space-between;
     align-items: center;
     width: 28mm;
-    font-size: 6px;
+    font-size: 10px;
     font-weight: bold;
     margin: 0.5mm 0 0 0;
     padding: 0;
@@ -406,22 +407,24 @@ function generateAndPrintBarcode() {
     margin: 0;
     padding: 0;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 13mm;
+    flex: 1;
+  }
+
+  .product-price {
+    font-size: 12px;
+    text-align: right;
   }
 
   /* Product code */
   .product-code {
     color: #000;
-    font-size: 7px;
+    font-size: 11px;
     font-weight: bold;
     margin: 0.5mm 0;
     padding: 0;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     width: 28mm;
+    text-align: center;
   }
 }
 </style>
