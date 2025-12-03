@@ -119,11 +119,6 @@
                   {{ product.name }} ({{ product.barcode || product.code }})
                 </li>
               </ul>
-
-              <p v-if="form.barcode" class="text-lg pt-2 absolute">
-                You have selected:
-                <span class="font-semibold">{{ form.barcode }}</span>
-              </p>
             </div>
 
                         <div class="w-full text-center">
@@ -1402,10 +1397,17 @@ const submitCoupon = async () => {
 
 // Automatically submit the barcode to the backend
 const submitBarcode = async () => {
+    // Store the barcode value before clearing
+    const barcodeValue = form.barcode;
+    
+    // Clear immediately to prevent overlay from showing
+    form.barcode = "";
+    searchTerm.value = "";
+    
     try {
         // Send POST request to the backend
         const response = await axios.post(route("pos.getProduct"), {
-            barcode: form.barcode, // Send the barcode field
+            barcode: barcodeValue, // Send the stored barcode value
         });
 
         // Extract the response data
@@ -1437,10 +1439,6 @@ const submitBarcode = async () => {
 
             product.value = fetchedProduct; // Update product state for individual display
             error.value = null; // Clear any previous errors
-            
-            // Clear the barcode input and search results after successful addition
-            form.barcode = "";
-            searchTerm.value = "";
             
             console.log(
                 "Product fetched successfully and added to cart:",
