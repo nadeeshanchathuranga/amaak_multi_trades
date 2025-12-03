@@ -1437,6 +1437,11 @@ const submitBarcode = async () => {
 
             product.value = fetchedProduct; // Update product state for individual display
             error.value = null; // Clear any previous errors
+            
+            // Clear the barcode input and search results after successful addition
+            form.barcode = "";
+            searchTerm.value = "";
+            
             console.log(
                 "Product fetched successfully and added to cart:",
                 fetchedProduct

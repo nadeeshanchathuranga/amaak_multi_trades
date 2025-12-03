@@ -324,8 +324,8 @@ function generateAndPrintBarcode() {
   JsBarcode(barcodePrintElement, input, {
     format: "CODE128", // Code 128 is compact and ideal for small labels
     lineColor: "#000", // Black lines for high contrast
-    width: 1.2, // Wider bars to fill the label width
-    height: 50, // Barcode height adjusted for the label
+    width: 1, // Bar width for 30mm label
+    height: 35, // Barcode height for 20mm label (leaving space for text)
     displayValue: false, // Disable text display
     margin: 0, // Remove default margins
   });
@@ -343,14 +343,28 @@ function generateAndPrintBarcode() {
 
 <style>
 @media print {
+  /* Set exact page size to 30mm x 20mm */
+  @page {
+    size: 30mm 20mm;
+    margin: 0;
+  }
+
+  /* Reset body for print */
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
   /* Label container */
   #printContainer {
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 100%;
-    height: 100%;
-    margin-top: 0;
+    width: 30mm;
+    height: 20mm;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
   }
 
   /* Print content */
@@ -359,45 +373,55 @@ function generateAndPrintBarcode() {
     display: flex;
     flex-direction: column;
     align-items: center;
-    height: 100%;
-    width: 100%;
-    margin-top: 2mm;
+    justify-content: center;
+    height: 20mm;
+    width: 30mm;
+    margin: 0;
+    padding: 1mm;
+    box-sizing: border-box;
   }
 
-  /* Barcode centered and full width */
+  /* Barcode centered and sized for 30mm label */
   #barcodePrint {
-    width: 100%;
-    margin-left: 12mm;
+    width: 28mm;
+    height: 10mm;
+    margin: 0 auto;
   }
 
   /* Product details */
   .product-details {
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between;
     align-items: center;
-    width: 100%;
-    font-size: 10px;
+    width: 28mm;
+    font-size: 6px;
     font-weight: bold;
-    margin-bottom: 5px;
-    margin-left: 12mm;
+    margin: 0.5mm 0 0 0;
+    padding: 0;
   }
 
   .product-category,
   .product-price {
     color: #000;
     margin: 0;
+    padding: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 13mm;
   }
 
   /* Product code */
   .product-code {
     color: #000;
-    font-size: 10px;
+    font-size: 7px;
     font-weight: bold;
-    margin-top: 5px;
-    margin-left: 10mm;
+    margin: 0.5mm 0;
+    padding: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 28mm;
   }
 }
 </style>
