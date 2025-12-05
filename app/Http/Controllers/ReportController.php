@@ -99,6 +99,39 @@ class ReportController extends Controller
     ];
 });
 
+// =========================
+// Today's Sales Data
+// =========================
+$todayDate = now()->format('Y-m-d'); // Get today's date in Y-m-d format
+
+$todaySales = DB::table('sales')
+    ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
+    ->select(
+        'sales.id',
+        'sales.sale_date',
+        'sales.total_amount',
+        'sales.payment_method',
+        'customers.name as customer_name',
+        'sales.employee_id',
+        'sales.created_at'
+    )
+    ->whereDate('sales.sale_date', $todayDate)
+    ->orderBy('sales.created_at', 'desc')
+    ->get()
+    ->map(function ($sale) {
+        return [
+            'id' => $sale->id,
+            'sale_date' => $sale->sale_date,
+            'total_amount' => (float) $sale->total_amount,
+            'payment_method' => $sale->payment_method,
+            'customer_name' => $sale->customer_name ?: 'Walk-in Customer',
+            'time' => \Carbon\Carbon::parse($sale->created_at)->format('H:i A')
+        ];
+    });
+
+$todaySalesTotal = collect($todaySales)->sum('total_amount');
+$todaySalesCount = count($todaySales);
+
 
 
     //   $monthlyProductSales = DB::table('sales')
@@ -215,7 +248,7 @@ class ReportController extends Controller
     // =========================
     // 5. Get Sales Data
     // =========================
-    // $sales = $salesQuery->orderBy('sale_date', 'desc')->get();
+    $sales = $salesQuery->orderBy('sale_date', 'desc')->get();
 
 
     // =========================
@@ -341,6 +374,9 @@ class ReportController extends Controller
         'categorySales' => $categorySales,
         'employeeSalesSummary' => $employeeSalesSummary,
         'monthlySalesData' => $monthlySalesData,
+        'todaySalesData' => $todaySales,
+        'todaySalesTotal' => $todaySalesTotal,
+        'todaySalesCount' => $todaySalesCount,
         'paymentMethodTotals'=> $paymentMethodTotals,
         'stockTransactionsReturn'=>$stockTransactionsReturn,
         'paintOrderSummary' => $paintOrderSummary,

@@ -28,7 +28,7 @@
           <div class="flex md:w-3/6 w-full p-8 border-4 border-black rounded-3xl">
             <div class="flex flex-col items-start justify-center w-full md:px-12">
               <div class="flex items-center justify-between w-full">
-                <h2 class="text-5xl font-bold text-black">Quotation1 </h2>
+                <h2 class="text-5xl font-bold text-black">Quotation </h2>
                  <span class="flex cursor-pointer" @click="isSelectModalOpen = true">
                     <p class="text-xl text-blue-600 font-bold">Product Manual</p>
                     <img src="/images/selectpsoduct.svg" class="w-6 h-6 ml-2" />
@@ -807,7 +807,6 @@ const downloadPdf = async () => {
   } catch (error) {
     console.error('Error adding logo to PDF:', error);
     pdf.setFontSize(12);
-    pdf.text('Company Logo', pageWidth - 60, 20);
   }
 
   // --- CMSPORTS-style Right-Side Contact Info ---

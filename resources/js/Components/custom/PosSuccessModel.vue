@@ -83,6 +83,7 @@
        },
        cashier: Object,
        customer: Object,
+       employee: Object,
        orderid: String,
        balance: Number,
        cash: Number,
@@ -100,6 +101,9 @@
        console.log('Products:', props.products);
        console.log('Order ID:', props.orderid);
        console.log('Payment Method:', props.paymentMethod);
+       console.log('Customer prop:', props.customer);
+       console.log('Employee prop:', props.employee);
+       console.log('Cashier prop:', props.cashier);
        
        // Calculate totals from props.products
        const subTotal = props.products.reduce(
@@ -156,6 +160,13 @@
            .join("");
 
 
+       // Debug: Log what we're about to use in the receipt
+       console.log('About to generate receipt with:');
+       console.log('Customer name:', props.customer?.name);
+       console.log('Employee name:', props.employee?.name);
+       console.log('Customer object:', props.customer);
+       console.log('Employee object:', props.employee);
+
        // Generate the receipt HTML
        const receiptHTML = `
      <!DOCTYPE html>
@@ -203,6 +214,9 @@
                  justify-content: space-between;
                  font-size: 12px;
                  margin-top: 8px;
+             }
+             .info-row > div:last-child {
+                 text-align: right;
              }
              .info-row p {
                  margin: 0;
@@ -286,12 +300,19 @@
          <div class="info-row">
            <div>
              <p>Customer:</p>
-             <small>${props.customer.name}</small>
+             <small>${props.customer?.name || 'Walk-in Customer'}</small>
            </div>
-           <div>
+           <div style="text-align: right;">
              <p>Cashier:</p>
-             <small>${props.cashier.name}</small>
+             <small>${props.cashier?.name || 'admin'}</small>
            </div>
+         </div>
+         <div class="info-row">
+           <div>
+             <p>Employee:</p>
+             <small>${props.employee?.name || 'No Employee Selected'}</small>
+           </div>
+           <div></div>
          </div>
          <div class="info-row">
            <div>
@@ -383,7 +404,7 @@
          <p>THANK YOU COME AGAIN</p>
          <p class="italic">Let the quality define its own standards</p>
          <p style="font-weight: bold;">Powered by JAAN Network Ltd.</p>
-         <p>${new Date().toLocaleTimeString()} </p>
+        
        </div>
      </div>
    </body>

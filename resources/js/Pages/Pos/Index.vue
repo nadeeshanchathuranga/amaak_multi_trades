@@ -65,7 +65,11 @@
                     <div class="flex flex-col items-start justify-center w-full md:px-12 px-4">
                         <div class="flex items-center justify-between w-full">
                             <h2 class="md:text-5xl text-4xl font-bold text-black">Billing Details</h2>
-                            <button type="button" @click="openReturnBills"  >Return Bills</button>
+                          
+                            <span class="flex cursor-pointer" @click="openReturnBills">
+                                  <button class="text-xl text-blue-600 font-bold" type="button" >Return Bills</button>
+                                <img src="/images/selectpsoduct.svg" class="w-6 h-6 ml-2" />
+                            </span>
                             <span class="flex cursor-pointer" @click="isSelectModalOpen = true">
                                 <p class="text-xl text-blue-600 font-bold">User Manual</p>
                                 <img src="/images/selectpsoduct.svg" class="w-6 h-6 ml-2" />
@@ -453,7 +457,7 @@
                         <div class="flex flex-col w-full space-y-8">
                             <div class="flex items-center justify-center w-full pt-8 space-x-8">
                                 <p class="text-xl text-black">Payment Method :</p>
-                                <div @click="selectedPaymentMethod = 'cash'" :class="[
+                                <div @click="selectPaymentMethod('cash')" :class="[
                                     'cursor-pointer w-[100px]  border border-black rounded-xl flex flex-col justify-center items-center text-center',
                                     selectedPaymentMethod === 'cash'
                                         ? 'bg-yellow-500 font-bold'
@@ -461,7 +465,7 @@
                                 ]">
                                     <img src="/images/money-stack.png" alt="" class="w-24" />
                                 </div>
-                                <div @click="selectedPaymentMethod = 'card'" :class="[
+                                <div @click="selectPaymentMethod('card')" :class="[
                                     'cursor-pointer w-[100px] border border-black rounded-xl flex flex-col justify-center items-center text-center',
                                     selectedPaymentMethod === 'card'
                                         ? 'bg-yellow-500 font-bold'
@@ -469,7 +473,7 @@
                                 ]">
                                     <img src="/images/bank-card.png" alt="" class="w-24" />
                                 </div>
-                                <div @click="selectedPaymentMethod = 'Koko'" :class="[
+                                <div @click="selectPaymentMethod('Koko')" :class="[
                                     'cursor-pointer w-[100px] border border-black rounded-xl flex flex-col justify-center items-center text-center',
                                     selectedPaymentMethod === 'Koko'
                                         ? 'bg-yellow-500 font-bold'
@@ -477,6 +481,19 @@
                                 ]">
                                     <img src="/images/koko-logo.png" alt="Koko Payment" class="w-24" />
                                 </div>
+                            </div>
+
+                            <!-- Credit Bill Checkbox -->
+                            <div class="flex items-center justify-center w-full pt-4">
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        v-model="isCreditBill" 
+                                        @change="handleCreditBillChange"
+                                        class="w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                    />
+                                    <span class="text-lg font-semibold text-black">Credit Bill</span>
+                                </label>
                             </div>
 
                             <div class="flex items-center justify-center w-full">
@@ -871,10 +888,12 @@ const modalProducts = ref([]); // Separate ref for modal products - DON'T use ma
 
 const employee = computed(() => {
   if (!employee_id.value) return null;
-  return props.allemployee.find(emp => emp.id === employee_id.value);
+  // Convert both to strings for comparison to handle type mismatches
+  return props.allemployee.find(emp => String(emp.id) === String(employee_id.value));
 });
 
 const selectedPaymentMethod = ref("cash");
+const isCreditBill = ref(false);
 
 const refreshData = () => {
     router.visit(route("pos.index"), {
@@ -890,6 +909,21 @@ const removeProduct = (id) => {
 const removeCoupon = () => {
     appliedCoupon.value = null; // Clear the applied coupon
     couponForm.code = ""; // Clear the coupon field
+};
+
+const handleCreditBillChange = () => {
+    if (isCreditBill.value) {
+        selectedPaymentMethod.value = "credit bill";
+    } else {
+        selectedPaymentMethod.value = "cash"; // Reset to default when unchecked
+    }
+};
+
+const selectPaymentMethod = (method) => {
+    selectedPaymentMethod.value = method;
+    if (method !== "credit bill") {
+        isCreditBill.value = false; // Uncheck credit bill when other methods are selected
+    }
 };
 
 const incrementQuantity = (id) => {
@@ -1145,6 +1179,17 @@ const submitOrder = async () => {
                 return_items: returnItemsData
             });
 
+            // Set modal customer data for receipt display
+            modalCustomer.value = customer.value;
+            // Set modal employee data for receipt display
+            modalEmployee.value = employee.value || { name: "" };
+            
+            // Debug logging
+            console.log('Customer data:', customer.value);
+            console.log('Employee data:', employee.value);
+            console.log('Modal Customer:', modalCustomer.value);
+            console.log('Modal Employee:', modalEmployee.value);
+            
             isSuccessModalOpen.value = true;
             console.log(response.data);
             
