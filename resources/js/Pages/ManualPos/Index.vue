@@ -523,7 +523,6 @@ watch([cash, custom_discount], ([newCash, newDiscount]) => {
 
 // Attach the keypress event listener when the component is mounted
 onMounted(() => {
-  document.addEventListener("keypress", handleScannerInput);
   console.log(props.products);
 });
 
