@@ -144,24 +144,9 @@ class ReturnItemController extends Controller
                     throw new \Exception("Cannot return {$item['quantity']} units. Only {$remainingQty} units available for return (Original: {$originalQuantity}, Already returned: {$alreadyReturned}).");
                 }
 
-                // Calculate proportional discount for the returned quantity
-                // Get the original sale item discount and calculate per-unit discount
-                $originalSaleItemDiscount = $saleItem->discount ?? 0;
-                $totalReturnedDiscount = ReturnItem::where('sale_item_id', $item['sale_item_id'])
-                    ->sum('discount');
-                
-                // Remaining discount = original discount - already returned discount
-                $remainingDiscount = $originalSaleItemDiscount - $totalReturnedDiscount;
-                
-                // Calculate per-unit discount based on remaining quantity
-                $perUnitDiscount = $remainingQty > 0 ? ($remainingDiscount / $remainingQty) : 0;
-                
-                // Proportional discount for this return
-                $returnDiscount = $perUnitDiscount * $item['quantity'];
-
-                // Calculate return amounts
-                $returnSubtotal = $item['quantity'] * $item['unit_price'];
-                $returnAmount = $returnSubtotal - $returnDiscount;
+                // Calculate return amount using the unit price from sale item (already discounted)
+                // No additional discount should be applied during return
+                $returnAmount = $item['quantity'] * $saleItem->unit_price;
                 
                 $returnBillData['totals']['return_amount'] += $returnAmount;
 
@@ -185,18 +170,17 @@ class ReturnItemController extends Controller
                     $this->adjustEmployeeCommissions($sale, $saleItem, $item, $returnedProduct);
                 }
 
-                // Update sale_items table: reduce quantity, total_price, and discount
+                // Update sale_items table: reduce quantity and total_price
+                // The unit_price remains the same (already discounted)
                 $saleItem->quantity -= $item['quantity'];
                 $saleItem->total_price -= $returnAmount;
-                $saleItem->discount -= $returnDiscount;
                 $saleItem->save();
 
-                // Update original sale total (deduct returned amount) and discount
+                // Update original sale total (deduct returned amount)
                 $sale->total_amount -= $returnAmount;
-                $sale->discount -= $returnDiscount;
                 $sale->save();
 
-                // Create return item record
+                // Create return item record with NO discount
                 ReturnItem::create([
                     'sale_id' => $item['sale_id'],
                     'sale_item_id' => $item['sale_item_id'],
@@ -204,9 +188,9 @@ class ReturnItemController extends Controller
                     'product_id' => $item['product_id'],
                     'quantity' => $item['quantity'],
                     'reason' => $item['reason'],
-                    'unit_price' => $item['unit_price'],
+                    'unit_price' => $saleItem->unit_price, // Use discounted price from sale item
                     'total_price' => $returnAmount,
-                    'discount' => $returnDiscount,
+                    'discount' => 0, // No discount on returns
                     'return_date' => $item['return_date'],
                     'return_type' => $item['return_type'],
                     'employee_id' => $sale->employee_id,
@@ -218,9 +202,7 @@ class ReturnItemController extends Controller
                     'product_id' => $item['product_id'],
                     'product_name' => $returnedProduct->name,
                     'quantity' => $item['quantity'],
-                    'unit_price' => $item['unit_price'],
-                    'subtotal' => $returnSubtotal,
-                    'discount' => $returnDiscount,
+                    'unit_price' => $saleItem->unit_price,
                     'total' => $returnAmount,
                     'return_type' => $item['return_type'],
                     'reason' => $item['reason'],
