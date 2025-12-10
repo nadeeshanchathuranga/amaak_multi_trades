@@ -107,7 +107,7 @@
 </td>
 
 <td class="p-4 font-bold border-gray-200">
-  {{ ((history.total_amount || 0) - (history.discount || 0) - (history.custom_discount || 0)).toFixed(2) }}
+  {{ (Number(history.total_amount) || 0).toFixed(2) }}
 </td>
 
 <td class="p-4 font-bold border-gray-200">
@@ -419,7 +419,7 @@ const printReceipt = (history) => {
         </div>
         <div class="total-line">
           <span>Total</span>
-          <span>${(Number(history.total_amount) - (Number(history.discount) || 0) - (Number(history.custom_discount) || 0)).toFixed(2)} LKR</span>
+          <span>${(Number(history.total_amount) || 0).toFixed(2)} LKR</span>
         </div>
         <div>
           <span>Cash</span>
@@ -427,7 +427,7 @@ const printReceipt = (history) => {
         </div>
         <div style="font-weight: bold;">
           <span>Balance</span>
-          <span>${(Number(history.cash) - (Number(history.total_amount) - (Number(history.discount) || 0) - (Number(history.custom_discount) || 0))).toFixed(2)} LKR</span>
+          <span>${(Number(history.cash) - (Number(history.total_amount) || 0)).toFixed(2)} LKR</span>
         </div>
       </div>
 

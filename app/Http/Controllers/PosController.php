@@ -213,7 +213,7 @@ class PosController extends Controller
                 'payment_method' => $request->input('paymentMethod'), // Payment method from the request
                 'sale_date' => now()->toDateString(), // Current date
                 'cash' => $request->input('cash'),
-                'custom_discount' => $request->input('custom_discount'),
+                'custom_discount' => $customValue, // Store calculated custom discount value, not raw input
                 
 
             ]);
