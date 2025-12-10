@@ -256,12 +256,19 @@ class PaintOrderController extends Controller
                 $sale->custom_discount = (float) 0; // Ensure numeric
                 $sale->save();
 
+                // Calculate item total after discount
+                $itemDiscount = $sale->discount; // Paint orders typically have 0 discount
+                $perUnitDiscount = $qty > 0 ? ($itemDiscount / $qty) : 0;
+                $discountedUnitPrice = $sell - $perUnitDiscount;
+                $itemFinalTotal = $baseTotal - $itemDiscount;
+
                 SaleItem::create([
                     'sale_id'     => $sale->id,
                     'product_id'  => $genericProduct->id,
                     'quantity'    => $qty,
-                    'unit_price'  => $sell,   // SELLING price on the bill
-                    'total_price' => $baseTotal,
+                    'unit_price'  => $discountedUnitPrice, // Store discounted unit price
+                    'total_price' => $itemFinalTotal,
+                    'discount'    => $itemDiscount,
                 ]);
 
                 $order->update(['status' => 'completed']);

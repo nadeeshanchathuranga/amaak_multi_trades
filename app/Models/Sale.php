@@ -23,6 +23,21 @@ class Sale extends Model
         'custom_discount',
     ];
 
+    /**
+     * Calculate the discount share for a sale item based on the sale's total discount
+     * 
+     * @param float $itemTotal The total price of the item (quantity * unit_price)
+     * @param float $totalAmount The total amount before discount
+     * @return float The proportional discount for this item
+     */
+    public function calculateItemDiscount($itemTotal, $totalAmount)
+    {
+        if ($this->discount > 0 && $totalAmount > 0) {
+            return ($itemTotal / $totalAmount) * $this->discount;
+        }
+        return 0;
+    }
+
 
 
 

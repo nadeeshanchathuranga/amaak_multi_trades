@@ -24,6 +24,7 @@ class ReturnItem extends Model
         'employee_id',
         'new_product_amount',
         'original_quantity',
+        'discount',
     ];
 
     protected $casts = [

@@ -217,6 +217,16 @@ class PosController extends Controller
 
             ]);
 
+            // Calculate the discount per item proportionally based on their total price
+            $itemDiscountMap = [];
+            if ($totalDiscount > 0 && $totalAmount > 0) {
+                foreach ($products as $product) {
+                    $itemTotal = $product['quantity'] * $product['selling_price'];
+                    $itemDiscountShare = ($itemTotal / $totalAmount) * $totalDiscount;
+                    $itemDiscountMap[$product['id']] = $itemDiscountShare;
+                }
+            }
+
             foreach ($products as $product) {
                 // Check stock before saving sale items
                 $productModel = Product::find($product['id']);
@@ -241,13 +251,21 @@ class PosController extends Controller
                         ], 423); // HTTP 422 Unprocessable Entity
                     }
 
-                    // Create sale item
+                    // Calculate item total and discount
+                    $itemTotal = $product['quantity'] * $product['selling_price'];
+                    $itemDiscount = $itemDiscountMap[$product['id']] ?? 0;
+                    $perUnitDiscount = $product['quantity'] > 0 ? ($itemDiscount / $product['quantity']) : 0;
+                    $discountedUnitPrice = $product['selling_price'] - $perUnitDiscount;
+                    $itemFinalTotal = $itemTotal - $itemDiscount;
+
+                    // Create sale item with discounted unit price
                     $saleItem = SaleItem::create([
                         'sale_id' => $sale->id,
                         'product_id' => $product['id'],
                         'quantity' => $product['quantity'],
-                        'unit_price' => $product['selling_price'],
-                        'total_price' => $product['quantity'] * $product['selling_price'],
+                        'unit_price' => $discountedUnitPrice, // Store discounted unit price
+                        'total_price' => $itemFinalTotal,
+                        'discount' => $itemDiscount, // Total discount for this item
                     ]);
 
                     StockTransaction::create([

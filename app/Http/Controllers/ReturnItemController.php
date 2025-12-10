@@ -144,7 +144,25 @@ class ReturnItemController extends Controller
                     throw new \Exception("Cannot return {$item['quantity']} units. Only {$remainingQty} units available for return (Original: {$originalQuantity}, Already returned: {$alreadyReturned}).");
                 }
 
-                $returnAmount = $item['quantity'] * $item['unit_price'];
+                // Calculate proportional discount for the returned quantity
+                // Get the original sale item discount and calculate per-unit discount
+                $originalSaleItemDiscount = $saleItem->discount ?? 0;
+                $totalReturnedDiscount = ReturnItem::where('sale_item_id', $item['sale_item_id'])
+                    ->sum('discount');
+                
+                // Remaining discount = original discount - already returned discount
+                $remainingDiscount = $originalSaleItemDiscount - $totalReturnedDiscount;
+                
+                // Calculate per-unit discount based on remaining quantity
+                $perUnitDiscount = $remainingQty > 0 ? ($remainingDiscount / $remainingQty) : 0;
+                
+                // Proportional discount for this return
+                $returnDiscount = $perUnitDiscount * $item['quantity'];
+
+                // Calculate return amounts
+                $returnSubtotal = $item['quantity'] * $item['unit_price'];
+                $returnAmount = $returnSubtotal - $returnDiscount;
+                
                 $returnBillData['totals']['return_amount'] += $returnAmount;
 
                 // Increase stock for returned product
@@ -167,13 +185,15 @@ class ReturnItemController extends Controller
                     $this->adjustEmployeeCommissions($sale, $saleItem, $item, $returnedProduct);
                 }
 
-                // Update sale_items table: reduce quantity and total_price
+                // Update sale_items table: reduce quantity, total_price, and discount
                 $saleItem->quantity -= $item['quantity'];
                 $saleItem->total_price -= $returnAmount;
+                $saleItem->discount -= $returnDiscount;
                 $saleItem->save();
 
-                // Update original sale total (deduct returned amount)
+                // Update original sale total (deduct returned amount) and discount
                 $sale->total_amount -= $returnAmount;
+                $sale->discount -= $returnDiscount;
                 $sale->save();
 
                 // Create return item record
@@ -186,6 +206,7 @@ class ReturnItemController extends Controller
                     'reason' => $item['reason'],
                     'unit_price' => $item['unit_price'],
                     'total_price' => $returnAmount,
+                    'discount' => $returnDiscount,
                     'return_date' => $item['return_date'],
                     'return_type' => $item['return_type'],
                     'employee_id' => $sale->employee_id,
@@ -198,6 +219,8 @@ class ReturnItemController extends Controller
                     'product_name' => $returnedProduct->name,
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
+                    'subtotal' => $returnSubtotal,
+                    'discount' => $returnDiscount,
                     'total' => $returnAmount,
                     'return_type' => $item['return_type'],
                     'reason' => $item['reason'],
@@ -244,13 +267,23 @@ class ReturnItemController extends Controller
                     $newProductTotal = $newProductData['quantity'] * $newProductData['selling_price'];
                     $returnBillData['totals']['new_product_amount'] += $newProductTotal;
 
+                    // Calculate item discount (proportional if sale has discount)
+                    $itemDiscount = 0;
+                    if ($returnSale->discount > 0 && $newProductsTotal > 0) {
+                        $itemDiscount = ($newProductTotal / $newProductsTotal) * $returnSale->discount;
+                    }
+                    $perUnitDiscount = $newProductData['quantity'] > 0 ? ($itemDiscount / $newProductData['quantity']) : 0;
+                    $discountedUnitPrice = $newProductData['selling_price'] - $perUnitDiscount;
+                    $itemFinalTotal = $newProductTotal - $itemDiscount;
+
                     // Create sale item for new product in return bill
                     $newSaleItem = SaleItem::create([
                         'sale_id' => $returnSale->id,
                         'product_id' => $newProduct->id,
                         'quantity' => $newProductData['quantity'],
-                        'unit_price' => $newProductData['selling_price'],
-                        'total_price' => $newProductTotal,
+                        'unit_price' => $discountedUnitPrice, // Store discounted unit price
+                        'total_price' => $itemFinalTotal,
+                        'discount' => $itemDiscount,
                     ]);
 
                     // Reduce stock for new product
