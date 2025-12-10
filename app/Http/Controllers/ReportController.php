@@ -184,8 +184,8 @@ $todaySalesCount = count($todaySales);
               ];
           }
 
-          $netAmount = $sale->total_amount - ($sale->discount ?? 0);
-          $employeeSalesSummary[$employeeName]['Total Sales Amount'] += $netAmount;
+          // total_amount already has discounts applied
+          $employeeSalesSummary[$employeeName]['Total Sales Amount'] += $sale->total_amount;
       }
 
 
@@ -286,8 +286,8 @@ $todaySalesCount = count($todaySales);
             ];
         }
 
-        $netAmount = $sale->total_amount - ($sale->discount ?? 0);
-        $employeeSalesSummary[$employeeName]['Total Sales Amount'] += $netAmount;
+        // total_amount already has discounts applied
+        $employeeSalesSummary[$employeeName]['Total Sales Amount'] += $sale->total_amount;
     }
 
     $stockTransactionsReturn = StockTransaction::with('product')->where('transaction_type','Returned')->get();
@@ -339,7 +339,8 @@ $todaySalesCount = count($todaySales);
     $totalCost = $sales->sum('total_cost');
     $totalDiscount = $sales->sum('discount');
     $customeDiscount = $sales->sum('custom_discount');
-    $netProfit = $totalSaleAmount - $totalCost - $totalDiscount - $customeDiscount;
+    // Note: total_amount already has discounts applied, so we don't subtract them again
+    $netProfit = $totalSaleAmount - $totalCost;
     $totalTransactions = $sales->count();
     $averageTransactionValue = $totalTransactions > 0 ? $totalSaleAmount / $totalTransactions : 0;
     $totalCustomer = $salesQuery->distinct('customer_id')->count('customer_id');
@@ -354,7 +355,7 @@ $todaySalesCount = count($todaySales);
     }
     
     $totalExpenses = $expensesQuery->sum('amount');
-    $profitAfterExpenses = $totalSaleAmount + (isset($paintOrderSummary['total_amount']) ? $paintOrderSummary['total_amount'] : 0) - $totalExpenses;
+    $profitAfterExpenses = $netProfit + (isset($paintOrderSummary['total_profit']) ? $paintOrderSummary['total_profit'] : 0) - $totalExpenses;
 
     // =========================
     // 12. Return to Vue via Inertia
