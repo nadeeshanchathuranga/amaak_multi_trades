@@ -99,6 +99,39 @@ class ReportController extends Controller
     ];
 });
 
+// =========================
+// Today's Sales Data
+// =========================
+$todayDate = now()->format('Y-m-d'); // Get today's date in Y-m-d format
+
+$todaySales = DB::table('sales')
+    ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
+    ->select(
+        'sales.id',
+        'sales.sale_date',
+        'sales.total_amount',
+        'sales.payment_method',
+        'customers.name as customer_name',
+        'sales.employee_id',
+        'sales.created_at'
+    )
+    ->whereDate('sales.sale_date', $todayDate)
+    ->orderBy('sales.created_at', 'desc')
+    ->get()
+    ->map(function ($sale) {
+        return [
+            'id' => $sale->id,
+            'sale_date' => $sale->sale_date,
+            'total_amount' => (float) $sale->total_amount,
+            'payment_method' => $sale->payment_method,
+            'customer_name' => $sale->customer_name ?: 'Walk-in Customer',
+            'time' => \Carbon\Carbon::parse($sale->created_at)->format('H:i A')
+        ];
+    });
+
+$todaySalesTotal = collect($todaySales)->sum('total_amount');
+$todaySalesCount = count($todaySales);
+
 
 
     //   $monthlyProductSales = DB::table('sales')
@@ -151,8 +184,8 @@ class ReportController extends Controller
               ];
           }
 
-          $netAmount = $sale->total_amount - ($sale->discount ?? 0);
-          $employeeSalesSummary[$employeeName]['Total Sales Amount'] += $netAmount;
+          // total_amount already has discounts applied
+          $employeeSalesSummary[$employeeName]['Total Sales Amount'] += $sale->total_amount;
       }
 
 
@@ -215,7 +248,7 @@ class ReportController extends Controller
     // =========================
     // 5. Get Sales Data
     // =========================
-    // $sales = $salesQuery->orderBy('sale_date', 'desc')->get();
+    $sales = $salesQuery->orderBy('sale_date', 'desc')->get();
 
 
     // =========================
@@ -253,8 +286,8 @@ class ReportController extends Controller
             ];
         }
 
-        $netAmount = $sale->total_amount - ($sale->discount ?? 0);
-        $employeeSalesSummary[$employeeName]['Total Sales Amount'] += $netAmount;
+        // total_amount already has discounts applied
+        $employeeSalesSummary[$employeeName]['Total Sales Amount'] += $sale->total_amount;
     }
 
     $stockTransactionsReturn = StockTransaction::with('product')->where('transaction_type','Returned')->get();
@@ -306,7 +339,8 @@ class ReportController extends Controller
     $totalCost = $sales->sum('total_cost');
     $totalDiscount = $sales->sum('discount');
     $customeDiscount = $sales->sum('custom_discount');
-    $netProfit = $totalSaleAmount - $totalCost - $totalDiscount - $customeDiscount;
+    // Note: total_amount already has discounts applied, so we don't subtract them again
+    $netProfit = $totalSaleAmount - $totalCost;
     $totalTransactions = $sales->count();
     $averageTransactionValue = $totalTransactions > 0 ? $totalSaleAmount / $totalTransactions : 0;
     $totalCustomer = $salesQuery->distinct('customer_id')->count('customer_id');
@@ -321,7 +355,7 @@ class ReportController extends Controller
     }
     
     $totalExpenses = $expensesQuery->sum('amount');
-    $profitAfterExpenses = $totalSaleAmount + (isset($paintOrderSummary['total_amount']) ? $paintOrderSummary['total_amount'] : 0) - $totalExpenses;
+    $profitAfterExpenses = $netProfit + (isset($paintOrderSummary['total_profit']) ? $paintOrderSummary['total_profit'] : 0) - $totalExpenses;
 
     // =========================
     // 12. Return to Vue via Inertia
@@ -341,6 +375,9 @@ class ReportController extends Controller
         'categorySales' => $categorySales,
         'employeeSalesSummary' => $employeeSalesSummary,
         'monthlySalesData' => $monthlySalesData,
+        'todaySalesData' => $todaySales,
+        'todaySalesTotal' => $todaySalesTotal,
+        'todaySalesCount' => $todaySalesCount,
         'paymentMethodTotals'=> $paymentMethodTotals,
         'stockTransactionsReturn'=>$stockTransactionsReturn,
         'paintOrderSummary' => $paintOrderSummary,

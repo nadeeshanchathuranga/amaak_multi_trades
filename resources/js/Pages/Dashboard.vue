@@ -417,6 +417,25 @@
         </div>
       </Link>
 
+      <Link href="/creditbill" v-if="HasRole(['Admin'])">
+        <div class="dashboard-card bg-[#BB8ED0]">
+          <div class="card-content">
+            <div class="icon-container">
+              <img
+                src="/images/dashboard/bills.png"
+                class="icon"
+                alt="dresshub.lk"
+              />
+            </div>
+            <div class="text-container">
+              <p class="title">Credit Bill</p>
+              <p class="description">
+                Track and organize credit bills details like date, items, total cost, and payment status for easy management and quick reference.</p>
+            </div>
+          </div>
+        </div>
+      </Link>
+
       <Link href="/quotation" v-if="HasRole(['Admin'])">
         <div class="dashboard-card bg-[#216b85]">
           <div class="card-content">
@@ -435,6 +454,7 @@
           </div>
         </div>
       </Link>
+
 
 
 

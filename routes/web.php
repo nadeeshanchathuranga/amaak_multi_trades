@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CreditBillController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PosController;
@@ -120,7 +121,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('stock-transition', StockTransactionController::class);
     Route::resource('manualpos', ManualPosController::class);
 
-
+    // Credit Bill Routes
+    Route::get('/creditbill', [CreditBillController::class, 'index'])->name('creditbill.index');
+    Route::get('/creditbill/{id}', [CreditBillController::class, 'show'])->name('creditbill.show');
+    Route::patch('/creditbill/{id}/payment', [CreditBillController::class, 'updatePayment'])->name('creditbill.updatePayment');
+    Route::patch('/creditbill/{id}/mark-paid', [CreditBillController::class, 'markAsPaid'])->name('creditbill.markPaid');
+    Route::delete('/creditbill/{id}', [CreditBillController::class, 'destroy'])->name('creditbill.destroy');
 
     Route::resource('/quotation', QuotationController::class);
     Route::post('/api/save-quotation', [QuotationController::class, 'saveQuotationPdf']);

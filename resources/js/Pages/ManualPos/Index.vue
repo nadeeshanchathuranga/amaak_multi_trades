@@ -216,7 +216,7 @@
               >
                 <p class="text-xl text-black">Payment Method :</p>
                 <div
-                  @click="selectedPaymentMethod = 'cash'"
+                  @click="selectPaymentMethod('cash')"
                   :class="[
                     'cursor-pointer w-[100px]  border border-black rounded-xl flex flex-col justify-center items-center text-center',
                     selectedPaymentMethod === 'cash'
@@ -227,7 +227,7 @@
                   <img src="/images/money-stack.png" alt="" class="w-24" />
                 </div>
                 <div
-                  @click="selectedPaymentMethod = 'card'"
+                  @click="selectPaymentMethod('card')"
                   :class="[
                     'cursor-pointer w-[100px] border border-black rounded-xl flex flex-col justify-center items-center text-center',
                     selectedPaymentMethod === 'card'
@@ -237,6 +237,19 @@
                 >
                   <img src="/images/bank-card.png" alt="" class="w-24" />
                 </div>
+              </div>
+
+              <!-- Credit Bill Checkbox -->
+              <div class="flex items-center justify-center w-full pt-4">
+                <label class="flex items-center space-x-3 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    v-model="isCreditBill" 
+                    @change="handleCreditBillChange"
+                    class="w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                  />
+                  <span class="text-lg font-semibold text-black">Credit Bill</span>
+                </label>
               </div>
 
               <div class="flex items-center justify-center w-full">
@@ -352,6 +365,22 @@ const customer = ref({
 const employee_id = ref("");
 
 const selectedPaymentMethod = ref("cash");
+const isCreditBill = ref(false);
+
+const handleCreditBillChange = () => {
+    if (isCreditBill.value) {
+        selectedPaymentMethod.value = "credit bill";
+    } else {
+        selectedPaymentMethod.value = "cash";
+    }
+};
+
+const selectPaymentMethod = (method) => {
+    selectedPaymentMethod.value = method;
+    if (method !== "credit bill") {
+        isCreditBill.value = false;
+    }
+};
 
 const refreshData = () => {
   router.visit(route("pos.index"), {

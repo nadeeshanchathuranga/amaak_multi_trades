@@ -24,18 +24,18 @@
                      </div>
                   </div>
                   <div class="flex justify-center items-center space-x-4 pt-4 mt-4">
-                     <p
-                        class="cursor-pointer bg-blue-600 text-white font-bold uppercase tracking-wider px-4 shadow-xl   py-4 rounded-xl">
+                     <button
+                        class="cursor-pointer bg-blue-600 text-white font-bold uppercase tracking-wider px-4 shadow-xl py-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                         Send Reciept To Email
-                     </p>
-                     <p @click="handlePrintReceipt"
-                        class="cursor-pointer bg-blue-600 text-white font-bold uppercase tracking-wider px-4 shadow-xl   py-4 rounded-xl">
+                     </button>
+                     <button @click="(e) => { e.stopPropagation(); handlePrintReceipt(); }"
+                        class="cursor-pointer bg-blue-600 text-white font-bold uppercase tracking-wider px-4 shadow-xl py-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                         Print Receipt
-                     </p>
-                     <p @click="$emit('update:open', false)"
-                        class="cursor-pointer bg-red-600 text-white font-bold uppercase tracking-wider px-4 shadow-xl   py-4 rounded-xl">
+                     </button>
+                     <button @click="$emit('update:open', false)"
+                        class="cursor-pointer bg-red-600 text-white font-bold uppercase tracking-wider px-4 shadow-xl py-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                         Close
-                     </p>
+                     </button>
                   </div>
                </DialogPanel>
             </TransitionChild>
@@ -60,12 +60,6 @@
    // Access the companyInfo from the page props
    const companyInfo = computed(() => page.props.companyInfo);
 
-   if (companyInfo.value) {
-       console.log(companyInfo.value);
-   } else {
-       console.log('companyInfo is undefined or null');
-   }
-
    const handleClose = () => {
        console.log("Modal close prevented");
    };
@@ -89,16 +83,17 @@
        },
        cashier: Object,
        customer: Object,
+       employee: Object,
        orderid: String,
        balance: Number,
        cash: Number,
-       subTotal: String,
-       totalDiscount: String,
-       total: String,
+       subTotal: Number,
+       totalDiscount: Number,
+       total: Number,
        custom_discount: Number,
        custom_discount_type: String,
        paymentMethod: String,
-       kokoSurcharge: String
+       kokoSurcharge: Number
    });
 
    const handlePrintReceipt = () => {
@@ -106,6 +101,9 @@
        console.log('Products:', props.products);
        console.log('Order ID:', props.orderid);
        console.log('Payment Method:', props.paymentMethod);
+       console.log('Customer prop:', props.customer);
+       console.log('Employee prop:', props.employee);
+       console.log('Cashier prop:', props.cashier);
        
        // Calculate totals from props.products
        const subTotal = props.products.reduce(
@@ -162,6 +160,13 @@
            .join("");
 
 
+       // Debug: Log what we're about to use in the receipt
+       console.log('About to generate receipt with:');
+       console.log('Customer name:', props.customer?.name);
+       console.log('Employee name:', props.employee?.name);
+       console.log('Customer object:', props.customer);
+       console.log('Employee object:', props.employee);
+
        // Generate the receipt HTML
        const receiptHTML = `
      <!DOCTYPE html>
@@ -209,6 +214,9 @@
                  justify-content: space-between;
                  font-size: 12px;
                  margin-top: 8px;
+             }
+             .info-row > div:last-child {
+                 text-align: right;
              }
              .info-row p {
                  margin: 0;
@@ -284,7 +292,7 @@
              <p>Date:</p>
              <small>${new Date().toLocaleDateString()} </small>
            </div>
-           <div style="text-align: right;">
+           <div>
              <p>Order No:</p>
              <small>${props.orderid}</small>
            </div>
@@ -292,12 +300,19 @@
          <div class="info-row">
            <div>
              <p>Customer:</p>
-             <small>${props.customer.name}</small>
+             <small>${props.customer?.name || 'Walk-in Customer'}</small>
            </div>
            <div style="text-align: right;">
              <p>Cashier:</p>
-             <small>${props.cashier.name}</small>
+             <small>${props.cashier?.name || 'admin'}</small>
            </div>
+         </div>
+         <div class="info-row">
+           <div>
+             <p>Employee:</p>
+             <small>${props.employee?.name || 'No Employee Selected'}</small>
+           </div>
+           <div></div>
          </div>
          <div class="info-row">
            <div>
@@ -389,7 +404,7 @@
          <p>THANK YOU COME AGAIN</p>
          <p class="italic">Let the quality define its own standards</p>
          <p style="font-weight: bold;">Powered by JAAN Network Ltd.</p>
-         <p>${new Date().toLocaleTimeString()} </p>
+        
        </div>
      </div>
    </body>
@@ -397,23 +412,34 @@
      </html>
      `;
 
-       // Open a new window
-       const printWindow = window.open("", "_blank");
-       if (!printWindow) {
-           alert("Failed to open print window. Please check your browser settings.");
-           return;
+       // Create or get the print iframe
+       let printFrame = document.getElementById('printFrame');
+       if (!printFrame) {
+           printFrame = document.createElement('iframe');
+           printFrame.id = 'printFrame';
+           printFrame.style.position = 'absolute';
+           printFrame.style.top = '-10000px';
+           printFrame.style.left = '-10000px';
+           printFrame.style.width = '0';
+           printFrame.style.height = '0';
+           printFrame.style.border = 'none';
+           document.body.appendChild(printFrame);
        }
 
-       // Write the content to the new window
-       printWindow.document.open();
-       printWindow.document.write(receiptHTML);
-       printWindow.document.close();
+       // Write content to iframe
+       let frameDoc = printFrame.contentWindow || printFrame.contentDocument;
+       if (frameDoc && frameDoc.document) {
+           frameDoc = frameDoc.document;
+       }
+       
+       frameDoc.open();
+       frameDoc.write(receiptHTML);
+       frameDoc.close();
 
-       // Wait for the content to load before triggering print
-       printWindow.onload = () => {
-           printWindow.focus();
-           printWindow.print();
-           printWindow.close();
-       };
+       // Print after a short delay to ensure content is loaded
+       setTimeout(() => {
+           printFrame.contentWindow.focus();
+           printFrame.contentWindow.print();
+       }, 500);
    };
 </script>

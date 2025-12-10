@@ -28,7 +28,7 @@
           <div class="flex md:w-3/6 w-full p-8 border-4 border-black rounded-3xl">
             <div class="flex flex-col items-start justify-center w-full md:px-12">
               <div class="flex items-center justify-between w-full">
-                <h2 class="text-5xl font-bold text-black">Quotation1 </h2>
+                <h2 class="text-5xl font-bold text-black">Quotation </h2>
                  <span class="flex cursor-pointer" @click="isSelectModalOpen = true">
                     <p class="text-xl text-blue-600 font-bold">Product Manual</p>
                     <img src="/images/selectpsoduct.svg" class="w-6 h-6 ml-2" />
@@ -216,6 +216,30 @@
   ></textarea>
 </div>
 
+<!-- Shop Phone Number -->
+<div>
+  <label for="shop_phone" class="block mb-2 text-lg font-medium">Shop Phone Number:</label>
+  <input
+    v-model="form.shop_phone"
+    id="shop_phone"
+    name="shop_phone"
+    class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+    placeholder="Enter shop phone number (e.g., 0774772910 | 0112189778)"
+  />
+</div>
+
+<!-- Shop Address -->
+<div>
+  <label for="shop_address" class="block mb-2 text-lg font-medium">Shop Address:</label>
+  <textarea
+    v-model="form.shop_address"
+    id="shop_address"
+    name="shop_address"
+    class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+    placeholder="Enter shop address"
+    rows="2"
+  ></textarea>
+</div>
 
                 <button
                   class="pr-4"
@@ -232,6 +256,25 @@
           <div id="quotation-content" class="w-[50%] bg-white border border-gray-300 rounded-lg shadow-md p-6">
 
             <div>
+            <!-- Quotation Header with Shop Info -->
+            <div v-if="form.shop_phone || form.shop_address" class="bg-blue-900 text-white p-4 rounded-t-lg mb-6">
+              <div class="flex justify-between items-start">
+                <div>
+                  <h1 class="text-4xl font-bold">Quotation</h1>
+                </div>
+                <div class="text-right text-sm">
+                  <div v-if="form.shop_phone" class="flex items-center justify-end mb-1">
+                    <i class="ri-phone-line mr-2"></i>
+                    <span>{{ form.shop_phone }}</span>
+                  </div>
+                  <div v-if="form.shop_address" class="flex items-center justify-end">
+                    <i class="ri-map-pin-line mr-2"></i>
+                    <span>{{ form.shop_address }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
             <div class="text-center mb-6">
                 <!-- <img
                     :src="
@@ -348,7 +391,7 @@ import Banner from "@/Components/Banner.vue";
 import PosSuccessModel from "@/Components/custom/PosSuccessModel.vue";
 import AlertModel from "@/Components/custom/AlertModel.vue";
 import { useForm, router } from "@inertiajs/vue3";
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, reactive, onMounted, computed, watch } from "vue";
 import { Head } from "@inertiajs/vue3";
 import { Link } from "@inertiajs/vue3";
 import axios from "axios";
@@ -447,6 +490,16 @@ const customer = ref({
 const employee_id = ref("");
 
 const selectedPaymentMethod = ref("cash");
+
+// Quotation form object
+const form = reactive({
+    description: "",
+    valid_date: "",
+    client_name: "",
+    client_address: "",
+    shop_phone: "",
+    shop_address: "",
+});
 
 const refreshData = () => {
     router.visit(route("quotation.index"), {
@@ -579,7 +632,7 @@ const totalquotation = computed(() => {
 
 
 
-const form = useForm({
+const posForm = useForm({
     employee_id: "",
     barcode: "", // Form field for barcode
 });
@@ -624,7 +677,7 @@ const submitBarcode = async () => {
     try {
         // Send POST request to the backend
         const response = await axios.post(route("pos.getProduct"), {
-            barcode: form.barcode, // Send the barcode field
+            barcode: posForm.barcode, // Send the barcode field
         });
 
         // Extract the response data
@@ -682,7 +735,7 @@ const handleScannerInput = (event) => {
     clearTimeout(timeout); // Clear the timeout for each keypress
     if (event.key === "Enter") {
         // Barcode scanning completed
-        form.barcode = barcode; // Set the scanned barcode into the form
+        posForm.barcode = barcode; // Set the scanned barcode into the form
         submitBarcode(); // Automatically submit the barcode
         barcode = ""; // Reset the barcode for the next scan
     } else {
@@ -807,20 +860,19 @@ const downloadPdf = async () => {
   } catch (error) {
     console.error('Error adding logo to PDF:', error);
     pdf.setFontSize(12);
-    pdf.text('Company Logo', pageWidth - 60, 20);
   }
 
-  // --- CMSPORTS-style Right-Side Contact Info ---
+  // --- Dynamic Right-Side Contact Info ---
   const contactDetails = [
-    {
-      text:  '0774772910 | 0112189778',
+    ...(form.shop_phone ? [{
+      text: form.shop_phone,
       icon: '/images/phone-icon.png',
-    },
+    }] : []),
     
-    {
-      text:  'No 51/62, Rukmale, Pannipitiya',
+    ...(form.shop_address ? [{
+      text: form.shop_address,
       icon: '/images/location-icon.png',
-    },
+    }] : []),
   ];
 
   let contactY = 23;

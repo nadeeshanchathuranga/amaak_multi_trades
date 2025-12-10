@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Color;
 use App\Models\Coupon;
+use App\Models\CreditBill;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Sale;
@@ -212,7 +213,7 @@ class PosController extends Controller
                 'payment_method' => $request->input('paymentMethod'), // Payment method from the request
                 'sale_date' => now()->toDateString(), // Current date
                 'cash' => $request->input('cash'),
-                'custom_discount' => $request->input('custom_discount'),
+                'custom_discount' => $customValue, // Store calculated custom discount value, not raw input
                 
 
             ]);
@@ -345,6 +346,27 @@ class PosController extends Controller
        
                 }
 
+            }
+
+            // Create credit bill entry if payment method is "credit bill"
+            if ($request->input('paymentMethod') === 'credit bill') {
+                try {
+                    CreditBill::create([
+                        'sale_id' => $sale->id,
+                        'customer_id' => $customer ? $customer->id : null,
+                        'order_id' => $request->input('orderid'),
+                        'total_amount' => $finalTotal,
+                        'paid_amount' => 0,
+                        'remaining_amount' => $finalTotal,
+                        'payment_status' => 'pending',
+                        'due_date' => now()->addDays(30), // Default 30 days from now
+                        'notes' => 'Auto-generated from POS sale',
+                    ]);
+                    \Log::info('Credit bill created successfully for sale ID: ' . $sale->id);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to create credit bill for sale ID: ' . $sale->id . '. Error: ' . $e->getMessage());
+                    throw $e; // Re-throw to trigger transaction rollback
+                }
             }
 
             DB::commit();

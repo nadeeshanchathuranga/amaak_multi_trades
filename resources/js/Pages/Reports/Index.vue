@@ -732,42 +732,133 @@
       <thead>
         <tr class="bg-gradient-to-r from-blue-700 via-blue-600 to-blue-700 text-white text-[14px] border-b border-blue-800">
           <th class="p-3 text-left font-semibold">#</th>
-          <th class="p-3 text-left font-semibold">Supplier Name</th>
-          <th class="p-3 text-center font-semibold">Product</th>
-          <th class="p-3 text-center font-semibold">Sales QTY</th>
-          <th class="p-3 text-center font-semibold">Total Quantity</th>
-          <th class="p-3 text-center font-semibold">Remaining QTY</th>
-          <th class="p-3 text-center font-semibold">Selling Price (LKR)</th>
-          <th class="p-3 text-center font-semibold">Cost Price</th>
-          <th class="p-3 text-center font-semibold">Total Price</th>
+          <th class="p-3 text-center font-semibold">Sale ID</th>
+          <th class="p-3 text-center font-semibold">Customer</th>
+          <th class="p-3 text-center font-semibold">Employee</th>
+          <th class="p-3 text-center font-semibold">Payment Method</th>
+          <th class="p-3 text-center font-semibold">Total Amount (LKR)</th>
+          <th class="p-3 text-center font-semibold">Discount</th>
+          <th class="p-3 text-center font-semibold">Sale Date</th>
+          <th class="p-3 text-center font-semibold">Order ID</th>
         </tr>
       </thead>
 
       <tbody class="text-[12px] font-medium">
         <tr
-          v-for="(product, index) in products"
-          :key="product.id"
+          v-for="(sale, index) in sales"
+          :key="sale.id"
           class="border-b transition duration-200 hover:bg-gray-100"
         >
           <td class="p-3 text-center">{{ index + 1 }}</td>
-          <td class="p-3 font-bold">{{ product.supplier?.name || "N/A" }}</td>
-          <td class="p-3 text-center">{{ product.name }}</td>  
-          <td class="p-3 text-center">{{ product.sales_qty || "0" }}</td>
-          <td class="p-3 text-center">{{ product.total_quantity || "0" }}</td>
-          <td class="p-3 text-center">{{  product.total_quantity - product.sales_qty > 0
-              ? product.total_quantity - product.sales_qty
-              : 0 }}</td>
-          <td class="p-3 text-center">{{ product.selling_price || "N/A" }}</td>
-          <td class="p-3 text-center">{{ product.cost_price || "N/A" }}</td>
+          <td class="p-3 text-center font-semibold text-blue-600">#{{ sale.id }}</td>
+          <td class="p-3 text-center">{{ sale.customer?.name || 'Walk-in Customer' }}</td>  
+          <td class="p-3 text-center">{{ sale.employee?.name || 'N/A' }}</td>
           <td class="p-3 text-center">
-            {{ product.sales_qty * product.selling_price || 0 }}
+            <span class="px-2 py-1 rounded-full text-xs font-semibold"
+              :class="{
+                'bg-green-100 text-green-800': sale.payment_method === 'Cash',
+                'bg-blue-100 text-blue-800': sale.payment_method === 'Card',
+                'bg-purple-100 text-purple-800': sale.payment_method === 'Online',
+                'bg-yellow-100 text-yellow-800': sale.payment_method === 'Koko',
+                'bg-gray-100 text-gray-800': !['Cash', 'Card', 'Online', 'Koko'].includes(sale.payment_method)
+              }"
+            >
+              {{ sale.payment_method }}
+            </span>
           </td>
+          <td class="p-3 text-center font-semibold text-green-600">{{ sale.total_amount.toLocaleString() }}</td>
+          <td class="p-3 text-center">{{ sale.discount || "0.00" }}</td>
+          <td class="p-3 text-center">{{ new Date(sale.sale_date).toLocaleDateString() }}</td>
+          <td class="p-3 text-center">{{ sale.order_id || 'N/A' }}</td>
         </tr>
       </tbody>
     </table>
     </div>
   </div>
 </div>
+</div>
+
+<!-- Today Sales Table -->
+<div class="flex md:flex-row flex-col items-center justify-center w-full h-full md:space-x-4 md:space-y-0 space-y-4 mb-8">
+  <div class="w-full bg-white border-4 border-black rounded-xl p-6">
+    <h2 class="text-2xl font-semibold text-slate-700 text-center pb-4">
+      Today Sales Table
+    </h2>
+
+    <!-- Buttons and Total Section -->
+    <div class="flex justify-between items-center pb-4">
+      <!-- Left: Buttons -->
+      <div class="flex gap-4">
+        <button
+          @click="downloadTodayPDF"
+          class="px-4 py-2 text-md font-semibold text-white bg-orange-600 rounded-lg hover:bg-orange-700 shadow-md"
+        >
+          Download PDF
+        </button>
+      </div>
+
+      <!-- Right: Summary -->
+      <div class="py-3 px-6 border-2 border-orange-600 rounded-xl bg-orange-400 shadow-lg text-center">
+        <h2 class="text-lg font-extrabold text-black uppercase">
+          Total: <span class="text-xl font-bold text-black">{{ props.todaySalesTotal.toLocaleString() }} LKR</span>
+        </h2>
+        <p class="text-sm font-medium text-black">{{ props.todaySalesCount }} Transactions</p>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow overflow-hidden">
+      <div class="no-scrollbar overflow-x-auto">
+        <table
+          id="TodayTbl"
+          class="w-full table-auto responsive-table text-gray-800 bg-white"
+        >
+          <thead>
+            <tr class="bg-gradient-to-r from-blue-700 via-blue-600 to-blue-700 text-white text-[14px] border-b border-blue-800">
+              <th class="p-3 text-left font-semibold">#</th>
+              <th class="p-3 text-center font-semibold">Sale ID</th>
+              <th class="p-3 text-center font-semibold">Time</th>
+              <th class="p-3 text-center font-semibold">Customer</th>
+              <th class="p-3 text-center font-semibold">Payment Method</th>
+              <th class="p-3 text-center font-semibold">Amount (LKR)</th>
+            </tr>
+          </thead>
+
+          <tbody class="text-[12px] font-medium">
+            <tr
+              v-for="(sale, index) in todaySalesData"
+              :key="sale.id"
+              class="border-b transition duration-200 hover:bg-gray-100"
+            >
+              <td class="p-3 text-center">{{ index + 1 }}</td>
+              <td class="p-3 text-center font-semibold text-blue-600">#{{ sale.id }}</td>
+              <td class="p-3 text-center">{{ sale.time }}</td>
+              <td class="p-3 text-center">{{ sale.customer_name }}</td>
+              <td class="p-3 text-center">
+                <span class="px-2 py-1 rounded-full text-xs font-semibold"
+                  :class="{
+                    'bg-green-100 text-green-800': sale.payment_method === 'Cash',
+                    'bg-blue-100 text-blue-800': sale.payment_method === 'Card',
+                    'bg-purple-100 text-purple-800': sale.payment_method === 'Bank Transfer',
+                    'bg-gray-100 text-gray-800': !['Cash', 'Card', 'Bank Transfer'].includes(sale.payment_method)
+                  }"
+                >
+                  {{ sale.payment_method }}
+                </span>
+              </td>
+              <td class="p-3 text-center font-semibold text-green-600">
+                {{ sale.total_amount.toLocaleString() }}
+              </td>
+            </tr>
+            <tr v-if="todaySalesData.length === 0">
+              <td colspan="6" class="p-8 text-center text-gray-500 italic">
+                No sales recorded for today
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="flex md:flex-row flex-col items-center justify-center w-full h-full md:space-x-4 md:space-y-0 space-y-4 ">
@@ -1075,6 +1166,9 @@ const props = defineProps({
   categorySales: { type: Object, required: true },
   employeeSalesSummary: { type: Object, required: true },
   monthlySalesData: { type: Array, default: () => [] },
+  todaySalesData: { type: Array, default: () => [] },
+  todaySalesTotal: { type: Number, default: 0 },
+  todaySalesCount: { type: Number, default: 0 },
   stockTransactionsReturn: { type: Array, default: () => [] },
   paintOrderSummary: { type: Object, default: () => ({ total_orders: 0, total_amount: 0, total_profit: 0, total_cost: 0 }) },
   paintOrderDetails: { type: Array, default: () => [] },
@@ -1085,6 +1179,12 @@ const props = defineProps({
 const totalPrice = computed(() => {
   return products.value.reduce((sum, product) => {
     return sum + (product.sales_qty * product.selling_price || 0);
+  }, 0);
+});
+
+const totalSalesAmount = computed(() => {
+  return sales.value.reduce((sum, sale) => {
+    return sum + (parseFloat(sale.total_amount) || 0);
   }, 0);
 });
 
@@ -1121,6 +1221,7 @@ const endDate = ref(props.endDate);
 
 const products = ref(props.products);
 const monthlySalesData = ref(props.monthlySalesData);
+const todaySalesData = ref(props.todaySalesData);
 const stockTransactionsReturn = ref(props.stockTransactionsReturn);
 const paintOrderSummary = ref(props.paintOrderSummary);
 const paintOrderDetails = ref(props.paintOrderDetails);
@@ -1505,36 +1606,34 @@ const downloadPDFTable1 = () => {
   // Prepare table headers
   const tableColumn = [
     "#",
-    "Supplier Name",
-    "Product Name",
-    "Sales QTY",
-    "Total Quantity",
-    "Remaining QTY",
-    "Selling Price(LKR)",
-    "Cost Price(LKR)",
-    "Total Price",
+    "Sale ID",
+    "Customer",
+    "Employee",
+    "Payment Method",
+    "Total Amount (LKR)",
+    "Discount",
+    "Sale Date",
+    "Order ID",
   ];
 
   // Prepare table data
-  const tableRows = products.value.map((product, index) => [
+  const tableRows = sales.value.map((sale, index) => [
     index + 1,
-    product.supplier?.name || "N/A",
-    product.name|| "N/A",
-    product.sales_qty || "0",
-    product.total_quantity || "N/A",
-    product.total_quantity - product.sales_qty > 0
-      ? product.total_quantity - product.sales_qty
-      : 0,
-    product.selling_price|| 0,
-    product.cost_price || "N/A",
-    product.sales_qty * product.selling_price || 0,
+    `#${sale.id}`,
+    sale.customer?.name || "Walk-in Customer",
+    sale.employee?.name || "N/A",
+    sale.payment_method,
+    sale.total_amount.toLocaleString(),
+    sale.discount || "0.00",
+    new Date(sale.sale_date).toLocaleDateString(),
+    sale.order_id || 'N/A',
   ]);
 
-  // Calculate total sum of "Total Price"
-  const totalSum = tableRows.reduce((sum, row) => sum + row[8], 0);
+  // Calculate total sum of sales amounts
+  const totalSum = sales.value.reduce((sum, sale) => sum + parseFloat(sale.total_amount), 0);
 
   // Add a total row at the end
-  tableRows.push(["", "Total", "", "", "", "", "", "", totalSum.toFixed(2)]);
+  tableRows.push(["", "Total Sales", "", "", "", totalSum.toLocaleString(), "", "", ""]);
 
   // Adjust column widths
   doc.autoTable({
@@ -1784,6 +1883,36 @@ const downloadPDF = () => {
     startY: 20,
   });
   doc.save("EmployeeSales.pdf");
+};
+
+const downloadTodayPDF = () => {
+  const doc = new jsPDF();
+  const tableColumn = ["#", "Sale ID", "Time", "Customer", "Payment Method", "Amount (LKR)"];
+  const tableRows = [];
+
+  todaySalesData.value.forEach((sale, index) => {
+    tableRows.push([
+      index + 1,
+      `#${sale.id}`,
+      sale.time,
+      sale.customer_name,
+      sale.payment_method,
+      sale.total_amount.toLocaleString()
+    ]);
+  });
+
+  doc.text("Today's Sales Report", 14, 10);
+  doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 20);
+  doc.text(`Total Sales: ${props.todaySalesTotal.toLocaleString()} LKR`, 14, 30);
+  doc.text(`Total Transactions: ${props.todaySalesCount}`, 14, 40);
+
+  doc.autoTable({
+    head: [tableColumn],
+    body: tableRows,
+    startY: 50,
+  });
+  
+  doc.save(`Today_Sales_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
 const downloadPDF2 = () => {
