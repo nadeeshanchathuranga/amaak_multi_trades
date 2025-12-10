@@ -267,6 +267,7 @@ class PaintOrderController extends Controller
                     'product_id'  => $genericProduct->id,
                     'quantity'    => $qty,
                     'unit_price'  => $discountedUnitPrice, // Store discounted unit price
+                    'cost_price'  => $cost, // Store cost price at time of order
                     'total_price' => $itemFinalTotal,
                     'discount'    => $itemDiscount,
                 ]);

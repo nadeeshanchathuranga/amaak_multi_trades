@@ -519,7 +519,8 @@
         :employee="modalEmployee" :cashier="loggedInUser" :customer="modalCustomer" :orderid="actualOrderId || orderid" :cash="cash"
         :balance="balance" :subTotal="subtotal" :totalDiscount="totalDiscount" :total="total"
         :custom_discount_type="custom_discount_type"
-        :custom_discount="custom_discount" :paymentMethod="selectedPaymentMethod" :kokoSurcharge="kokoSurcharge" />
+        :custom_discount="custom_discount" :paymentMethod="selectedPaymentMethod" :kokoSurcharge="kokoSurcharge" 
+        :returnAmount="returnAmount" :newProductAmount="newProductAmount" />
     <AlertModel v-model:open="isAlertModalOpen" :message="message" />
 
     <SelectProductModel v-model:open="isSelectModalOpen" :allcategories="allcategories" :colors="colors" :sizes="sizes" :suppliers="suppliers"
@@ -714,10 +715,16 @@ const handleModalOpenUpdate = (newValue) => {
     isSuccessModalOpen.value = newValue;
     if (!newValue) {
         actualOrderId.value = ''; // Clear the actual order ID
-        // Only refresh for regular sales, not for return bills
+        returnAmount.value = 0; // Clear return amount
+        newProductAmount.value = 0; // Clear new product amount
+        // Always refresh data after modal closes to update dashboard/report
+        // This includes both regular sales and return bills
         if (!isReturnBillPrinted.value) {
             refreshData();
         } else {
+            // For return bills, we still need to refresh after the print modal closes
+            // to update the dashboard with the return information
+            refreshData();
             isReturnBillPrinted.value = false; // Reset the flag for next transaction
         }
     }
@@ -885,6 +892,8 @@ const employee_id = ref("");
 const modalEmployee = ref({ name: "" }); // Separate ref for modal display
 const modalCustomer = ref({ name: "", contactNumber: "", email: "" }); // Separate ref for modal
 const modalProducts = ref([]); // Separate ref for modal products - DON'T use main products!
+const returnAmount = ref(0);
+const newProductAmount = ref(0);
 
 const employee = computed(() => {
   if (!employee_id.value) return null;
@@ -1020,6 +1029,10 @@ const submitOrder = async () => {
                     cash.value = returnSaleData.total_amount || 0;
                     custom_discount.value = 0;
                     selectedPaymentMethod.value = returnSaleData.payment_method || "";
+                    
+                    // Set return amount and new product amount for P2P bill display
+                    returnAmount.value = returnSaleData.return_amount || 0;
+                    newProductAmount.value = returnSaleData.new_product_amount || 0;
                     
                     // Mark this as a return bill print modal (no auto-refresh on close)
                     isReturnBillPrinted.value = true;

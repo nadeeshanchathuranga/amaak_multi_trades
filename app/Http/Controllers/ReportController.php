@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\Report;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\ReturnItem;
 use App\Models\StockTransaction;
 use App\Models\Expense;
 use DateTime;
@@ -155,13 +156,14 @@ $todaySalesCount = count($todaySales);
 
         $sales = $salesQuery->orderBy('sale_date', 'desc')->get();
 
-        // Calculate category sales
+        // Calculate category sales (including negative quantities from returns)
         $categorySales = [];
         foreach ($sales as $sale) {
             foreach ($sale->saleItems as $item) {
                 $categoryName = $item->product->category->name ?? 'No Category';
-                $totalAmount = $sale->total_amount;
-                $categorySales[$categoryName] = ($categorySales[$categoryName] ?? 0) + $totalAmount;
+                // Use item total_price to properly account for negative quantities
+                $itemAmount = $item->total_price;
+                $categorySales[$categoryName] = ($categorySales[$categoryName] ?? 0) + $itemAmount;
             }
         }
 
@@ -333,14 +335,49 @@ $todaySalesCount = count($todaySales);
     //  $stockTransactionsReturn = $stockTransactionsReturn->orderBy('transaction_date', 'desc')->get();   
 
     // =========================
-    // 9. Overall Stats
+    // 9. Return Items Analysis
     // =========================
+    $returnItemsQuery = ReturnItem::query();
+    
+    if ($startDate && $endDate) {
+        $returnItemsQuery->whereBetween('return_date', [$startDate, $endDate]);
+    }
+    
+    $returnItems = $returnItemsQuery->get();
+    $totalReturnAmount = $returnItems->sum('total_price');
+    $totalReturnQuantity = $returnItems->sum('quantity');
+    
+    // =========================
+    // 10. Overall Stats (Using Negative Quantity Accounting with Item-Level Costs)
+    // =========================
+    
+    // With negative quantity accounting, the calculations are now automatic:
+    // - Returns create negative quantity sale_items (negative revenue, negative cost)
+    // - Exchanges create positive quantity sale_items (positive revenue, positive cost)
+    // - Profit = SUM((price * qty) - (cost * qty)) automatically accounts for all
+    
     $totalSaleAmount = $sales->sum('total_amount');
-    $totalCost = $sales->sum('total_cost');
     $totalDiscount = $sales->sum('discount');
     $customeDiscount = $sales->sum('custom_discount');
-    // Note: total_amount already has discounts applied, so we don't subtract them again
+    
+    // Calculate total cost from sale_items using stored cost_price
+    // This gives accurate cost per item at time of sale
+    $totalCost = 0;
+    foreach ($sales as $sale) {
+        foreach ($sale->saleItems as $item) {
+            // Use cost_price if available, otherwise fall back to product's current cost
+            $itemCost = $item->cost_price > 0 ? $item->cost_price : ($item->product->cost_price ?? 0);
+            $totalCost += $item->quantity * $itemCost;
+        }
+    }
+    
+    // Calculate net profit: revenue - cost
+    // Negative quantities automatically subtract from totals
     $netProfit = $totalSaleAmount - $totalCost;
+    
+    // For transparency, calculate gross sales (before any negative adjustments)
+    $grossSalesAmount = $totalSaleAmount + $totalReturnAmount;
+    
     $totalTransactions = $sales->count();
     $averageTransactionValue = $totalTransactions > 0 ? $totalSaleAmount / $totalTransactions : 0;
     $totalCustomer = $salesQuery->distinct('customer_id')->count('customer_id');
@@ -384,6 +421,11 @@ $todaySalesCount = count($todaySales);
         'paintOrderDetails' => $paintOrderDetails,
         'totalExpenses' => $totalExpenses,
         'profitAfterExpenses' => $profitAfterExpenses,
+        // Return items data
+        'returnItems' => $returnItems,
+        'totalReturnAmount' => $totalReturnAmount,
+        'totalReturnQuantity' => $totalReturnQuantity,
+        'grossSalesAmount' => $grossSalesAmount,
     ]);
 }
 

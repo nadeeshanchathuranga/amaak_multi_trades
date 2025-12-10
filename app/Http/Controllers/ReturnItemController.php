@@ -145,13 +145,48 @@ class ReturnItemController extends Controller
                 }
 
                 // Calculate return amount using the unit price from sale item (already discounted)
-                // No additional discount should be applied during return
                 $returnAmount = $item['quantity'] * $saleItem->unit_price;
-                
                 $returnBillData['totals']['return_amount'] += $returnAmount;
 
-                // Increase stock for returned product
+                // Get product for stock update
                 $returnedProduct = Product::find($item['product_id']);
+                
+                // Use the cost_price from the original sale item (if available) or product's current cost
+                $originalCostPrice = $saleItem->cost_price > 0 ? $saleItem->cost_price : $returnedProduct->cost_price;
+                
+                // Calculate proportional discount for returned quantity
+                // Use current quantity (before this return) to calculate per-unit discount
+                $currentQty = $saleItem->quantity;
+                $perUnitDiscount = $currentQty > 0 ? ($saleItem->discount / $currentQty) : 0;
+                $proportionalDiscount = $perUnitDiscount * $item['quantity'];
+                
+                // Calculate the original selling price (before discount) for this item
+                // unit_price is already discounted, so: original_price = unit_price + per_unit_discount
+                $originalSellingPrice = $saleItem->unit_price + $perUnitDiscount;
+                
+                // The return amount based on original selling price (before discount)
+                $grossReturnAmount = $item['quantity'] * $originalSellingPrice;
+                
+                // Create NEGATIVE quantity sale item to reverse the original sale
+                // Store the discounted unit_price for consistency
+                SaleItem::create([
+                    'sale_id' => $sale->id,
+                    'product_id' => $item['product_id'],
+                    'quantity' => -$item['quantity'], // NEGATIVE quantity
+                    'unit_price' => $saleItem->unit_price, // Discounted unit price
+                    'cost_price' => $originalCostPrice, // Original cost price
+                    'total_price' => -$returnAmount, // NEGATIVE amount (discounted)
+                    'discount' => -$proportionalDiscount, // NEGATIVE discount being reversed
+                ]);
+                
+                // Update sale totals to reflect the negative line
+                // total_amount is already net of discount, so we subtract the discounted return amount
+                $sale->total_amount -= $returnAmount;
+                $sale->total_cost -= ($item['quantity'] * $originalCostPrice);
+                $sale->discount -= $proportionalDiscount; // Reduce the tracked discount
+                $sale->save();
+
+                // Increase stock for returned product
                 $returnedProduct->update([
                     'stock_quantity' => $returnedProduct->stock_quantity + $item['quantity']
                 ]);
@@ -165,20 +200,10 @@ class ReturnItemController extends Controller
                     'supplier_id' => $returnedProduct->supplier_id ?? null,
                 ]);
 
-                // Adjust employee commissions BEFORE updating sale_items
+                // Adjust employee commissions
                 if ($sale->employee_id) {
                     $this->adjustEmployeeCommissions($sale, $saleItem, $item, $returnedProduct);
                 }
-
-                // Update sale_items table: reduce quantity and total_price
-                // The unit_price remains the same (already discounted)
-                $saleItem->quantity -= $item['quantity'];
-                $saleItem->total_price -= $returnAmount;
-                $saleItem->save();
-
-                // Update original sale total (deduct returned amount)
-                $sale->total_amount -= $returnAmount;
-                $sale->save();
 
                 // Create return item record with NO discount
                 ReturnItem::create([
@@ -222,6 +247,13 @@ class ReturnItemController extends Controller
                     $newProductsTotal += $newProductTotal;
                 }
 
+                // Calculate total cost for new products
+                $newProductsCost = 0;
+                foreach ($validated['new_products'] as $newProductData) {
+                    $newProduct = Product::find($newProductData['product_id']);
+                    $newProductsCost += $newProductData['quantity'] * $newProduct->cost_price;
+                }
+
                 // Create a new Sale record for the return transaction (P2P bill)
                 $returnSale = Sale::create([
                     'customer_id' => $originalSale->customer_id,
@@ -232,7 +264,7 @@ class ReturnItemController extends Controller
                     'discount' => 0,
                     'payment_method' => $originalSale->payment_method,
                     'sale_date' => now()->toDateString(),
-                    'total_cost' => 0, // Will be calculated from new products
+                    'total_cost' => $newProductsCost,
                     'cash' => 0,
                     'custom_discount' => 0,
                 ]);
@@ -258,12 +290,13 @@ class ReturnItemController extends Controller
                     $discountedUnitPrice = $newProductData['selling_price'] - $perUnitDiscount;
                     $itemFinalTotal = $newProductTotal - $itemDiscount;
 
-                    // Create sale item for new product in return bill
+                    // Create sale item for new product in return bill with cost price
                     $newSaleItem = SaleItem::create([
                         'sale_id' => $returnSale->id,
                         'product_id' => $newProduct->id,
                         'quantity' => $newProductData['quantity'],
                         'unit_price' => $discountedUnitPrice, // Store discounted unit price
+                        'cost_price' => $newProduct->cost_price, // Store cost price of new product
                         'total_price' => $itemFinalTotal,
                         'discount' => $itemDiscount,
                     ]);
@@ -356,25 +389,34 @@ class ReturnItemController extends Controller
             DB::commit();
 
             // Prepare return sale data for print bill
-            // For P2P: shows new products issued
+            // For P2P: shows new products issued with net amount calculation
             // For Cash: can show return receipt details
             $returnSaleData = null;
             if ($returnSale) {
                 $returnSale->load(['items.product.unit', 'customer', 'employee']);
+                
+                // For P2P returns, the bill should show the net amount (new products - return amount)
+                $netAmount = $hasP2P ? 
+                    $returnBillData['totals']['new_product_amount'] - $returnBillData['totals']['return_amount'] :
+                    $returnSale->total_amount;
+                
                 $returnSaleData = [
                     'id' => $returnSale->id,
                     'order_id' => $returnSale->order_id,
-                    'total_amount' => $returnSale->total_amount,
+                    'total_amount' => $netAmount, // Use net amount for P2P returns
                     'payment_method' => $returnSale->payment_method,
                     'sale_date' => $returnSale->sale_date,
                     'customer' => $returnSale->customer,
                     'employee' => $returnSale->employee,
+                    'return_amount' => $hasP2P ? $returnBillData['totals']['return_amount'] : 0, // Include return amount for P2P
+                    'new_product_amount' => $hasP2P ? $returnBillData['totals']['new_product_amount'] : 0, // Include new product amount
                     'items' => $returnSale->items->map(function($item) {
                         return [
                             'id' => $item->id,
                             'name' => $item->product->name,
                             'quantity' => $item->quantity,
                             'unit_price' => $item->unit_price,
+                            'selling_price' => $item->unit_price,
                             'total_price' => $item->total_price,
                             'unit' => $item->product->unit,
                             'discount' => 0,

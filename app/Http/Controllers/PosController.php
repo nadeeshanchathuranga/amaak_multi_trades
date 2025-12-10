@@ -259,12 +259,13 @@ class PosController extends Controller
                     $discountedUnitPrice = $product['selling_price'] - $perUnitDiscount;
                     $itemFinalTotal = $itemTotal - $itemDiscount;
 
-                    // Create sale item with discounted unit price
+                    // Create sale item with discounted unit price and cost price
                     $saleItem = SaleItem::create([
                         'sale_id' => $sale->id,
                         'product_id' => $product['id'],
                         'quantity' => $product['quantity'],
                         'unit_price' => $discountedUnitPrice, // Store discounted unit price
+                        'cost_price' => $productModel->cost_price, // Store cost price at time of sale
                         'total_price' => $itemFinalTotal,
                         'discount' => $itemDiscount, // Total discount for this item
                     ]);

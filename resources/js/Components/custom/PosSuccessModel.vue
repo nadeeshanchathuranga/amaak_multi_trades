@@ -93,7 +93,15 @@
        custom_discount: Number,
        custom_discount_type: String,
        paymentMethod: String,
-       kokoSurcharge: Number
+       kokoSurcharge: Number,
+       returnAmount: {
+           type: Number,
+           default: 0
+       },
+       newProductAmount: {
+           type: Number,
+           default: 0
+       }
    });
 
    const handlePrintReceipt = () => {
@@ -117,6 +125,12 @@
        const customDiscount = Number(props.custom_discount || 0);
        const totalDiscount = props.products
            .reduce((total, item) => {
+               // For return items (negative price), don't apply additional discounts
+               const itemPrice = parseFloat(item.selling_price || item.unit_price || 0);
+               if (itemPrice < 0) {
+                   return total; // Don't discount returns
+               }
+               
                // Check if item has a discount
                if (item.discount && item.discount > 0 && item.apply_discount == true) {
                    const sellingPrice = parseFloat(item.selling_price || item.unit_price || 0);
@@ -139,12 +153,17 @@
                const price = product.discount > 0 && product.apply_discount
                    ? product.discounted_price  // Use discounted price if discount is applied
                    : basePrice;    // Use selling price or unit price if no discount
+               
+               // Check if this is a return item (negative price or quantity)
+               const isReturn = parseFloat(basePrice) < 0 || parseFloat(product.quantity) < 0;
+               const absPrice = Math.abs(basePrice);
+               const absQty = Math.abs(product.quantity);
 
                return `
            <tr>
              <td>${product.name || 'Unknown'}</td>
            <td style="text-align: center;">
-  ${product.quantity} ${product.unit_id ? (product.unit?.name || '') : ''}
+  ${absQty} ${product.unit_id ? (product.unit?.name || '') : ''}
 </td>
 
              <td>
@@ -152,7 +171,7 @@
                        ? `<div style="font-weight: bold; font-size: 7px; background-color:black; color:white;text-align:center;">${product.discount}% off</div>`
                        : ""
                    }
-               <div>${basePrice}</div>
+               <div>${isReturn ? '-' : ''}${absPrice}</div>
              </td>
            </tr>
          `;
@@ -372,6 +391,11 @@
            <span>Discount</span>
            <span>${(Number(props.totalDiscount) || 0).toFixed(2)} LKR</span>
          </div>
+         ${props.returnAmount > 0 ? `
+         <div style="color: red;">
+           <span>Return Amount</span>
+           <span>( ${(Number(props.returnAmount) || 0).toFixed(2)} LKR )</span>
+         </div>` : ''}
          <div>
            <span>Custom Discount</span>
            <span>

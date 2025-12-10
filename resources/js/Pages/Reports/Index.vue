@@ -1174,6 +1174,11 @@ const props = defineProps({
   paintOrderDetails: { type: Array, default: () => [] },
   totalExpenses: { type: Number, default: 0 },
   profitAfterExpenses: { type: Number, default: 0 },
+  // Return items props
+  returnItems: { type: Array, default: () => [] },
+  totalReturnAmount: { type: Number, default: 0 },
+  totalReturnQuantity: { type: Number, default: 0 },
+  grossSalesAmount: { type: Number, default: 0 },
 });
 
 const totalPrice = computed(() => {
