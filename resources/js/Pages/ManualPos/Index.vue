@@ -674,9 +674,9 @@ const openPrintSlip = () => {
               <table>
                   <thead>
                       <tr>
-                          <th>Description</th>
-                          <th style="text-align: center;">Qty</th>
-                          <th style="text-align: right;">Price</th>
+                          <th>Item</th>
+                          <th style="text-align: center;">Qty × Price</th>
+                          <th style="text-align: right;">Total</th>
                       </tr>
                   </thead>
                   <tbody>
@@ -685,8 +685,8 @@ const openPrintSlip = () => {
                               (product) => `
                               <tr>
                                   <td>${product.name}</td>
-                                  <td style="text-align: center;">${product.quantity}</td>
-                                  <td>${product.unitPrice}</td>
+                                  <td style="text-align: center;">${product.quantity} × ${product.unitPrice.toFixed(2)}</td>
+                                  <td style="text-align: right;">${(product.quantity * product.unitPrice).toFixed(2)}</td>
                               </tr>`
                           )
                           .join("")}
