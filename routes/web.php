@@ -23,6 +23,7 @@ use App\Http\Controllers\BaseStockController;
 use App\Http\Controllers\PaintOrderController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\UserController;
 
 use App\Http\Controllers\QuotationController;
 
@@ -110,6 +111,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('coupons', CouponController::class);
     Route::resource('sizes', SizeController::class);
     Route::resource('employees', EmployeeController::class);
+    Route::resource('users', UserController::class); 
     
     // Employee Commission Routes
     Route::get('/cashier-commission', [EmployeeCommissionController::class, 'index'])->name('cashier-commission.index');

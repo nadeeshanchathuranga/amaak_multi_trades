@@ -241,6 +241,18 @@
   ></textarea>
 </div>
 
+<!-- Company Name -->
+<div>
+  <label for="company_name" class="block mb-2 text-lg font-medium">Company Name:</label>
+  <input
+    v-model="form.company_name"
+    id="company_name"
+    name="company_name"
+    class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+    placeholder="Enter company name"
+  />
+</div>
+
                 <button
                   class="pr-4"
                    @click="addQuotation"
@@ -257,12 +269,15 @@
 
             <div>
             <!-- Quotation Header with Shop Info -->
-            <div v-if="form.shop_phone || form.shop_address" class="bg-blue-900 text-white p-4 rounded-t-lg mb-6">
+            <div v-if="form.shop_phone || form.shop_address || form.company_name" class="bg-blue-900 text-white p-4 rounded-t-lg mb-6">
               <div class="flex justify-between items-start">
                 <div>
                   <h1 class="text-4xl font-bold">Quotation</h1>
                 </div>
                 <div class="text-right text-sm">
+                  <div v-if="form.company_name" class="flex items-center justify-end">
+                    <span class="font-bold text-base">{{ form.company_name }}</span>
+                  </div>
                   <div v-if="form.shop_phone" class="flex items-center justify-end mb-1">
                     <i class="ri-phone-line mr-2"></i>
                     <span>{{ form.shop_phone }}</span>
@@ -287,7 +302,7 @@
                 />
 
                 <img src="/images/billlogo.png" style="width: 120px; height: 70px;" /> -->
-              <h1 class="text-4xl font-extrabold text-gray-800"> {{ companyInfo ? companyInfo.name : 'Company Name' }}</h1>
+              <h1 class="text-4xl font-extrabold text-gray-800"> {{ form.company_name || (companyInfo ? companyInfo.name : 'Company Name') }}</h1>
               <h2 class="text-2xl font-semibold text-gray-600 mt-2">Sales Quotation</h2>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 bg-gray-50 p-4 rounded-lg">
@@ -499,6 +514,7 @@ const form = reactive({
     client_address: "",
     shop_phone: "",
     shop_address: "",
+    company_name: "",
 });
 
 const refreshData = () => {
@@ -862,6 +878,14 @@ const downloadPdf = async () => {
     pdf.setFontSize(12);
   }
 
+  // --- Add Company Name at Top Right ---
+  if (form.company_name) {
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(20);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(form.company_name, pageWidth - 95, 15, { align: 'left' });
+  }
+
   // --- Dynamic Right-Side Contact Info ---
   const contactDetails = [
     ...(form.shop_phone ? [{
@@ -875,7 +899,7 @@ const downloadPdf = async () => {
     }] : []),
   ];
 
-  let contactY = 23;
+  let contactY = form.company_name ? 25 : 23; // Reduced spacing between company name and contact details
   const contactX = pageWidth - 95;
   const iconSize = 4;
   const iconGap = 3;
@@ -1071,7 +1095,7 @@ const downloadPdf = async () => {
 
   currentY += 8;
   pdf.setFont('helvetica', 'italic');
-  const companyName = props.companyInfo?.name || 'Your Company Name';
+  const companyName = form.company_name || props.companyInfo?.name || 'Your Company Name';
   pdf.text(companyName, 10, currentY);
 
   // Save

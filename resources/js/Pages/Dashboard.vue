@@ -455,6 +455,24 @@
         </div>
       </Link>
 
+      
+<Link href="/users" v-if="HasRole(['Admin'])">
+      <div class="dashboard-card bg-[#ffb224]">
+        <div class="card-content">
+          <div class="icon-container">
+            <img src="/images/dashboard/login-credentials.png" class="icon" alt="jaan-pos" />
+          </div>
+          <div class="text-container">
+            <p class="title">Login Change</p>
+            <p class="description">
+              Manage user login credentials and access permissions.
+            </p>
+          </div>
+        </div>
+      </div>
+      </Link>
+
+
 
 
 
