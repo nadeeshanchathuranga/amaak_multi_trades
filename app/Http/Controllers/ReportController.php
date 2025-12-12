@@ -114,7 +114,8 @@ $todaySales = DB::table('sales')
         'sales.payment_method',
         'customers.name as customer_name',
         'sales.employee_id',
-        'sales.created_at'
+        'sales.created_at',
+        'sales.order_id'
     )
     ->whereDate('sales.sale_date', $todayDate)
     ->orderBy('sales.created_at', 'desc')
@@ -126,7 +127,8 @@ $todaySales = DB::table('sales')
             'total_amount' => (float) $sale->total_amount,
             'payment_method' => $sale->payment_method,
             'customer_name' => $sale->customer_name ?: 'Walk-in Customer',
-            'time' => \Carbon\Carbon::parse($sale->created_at)->format('H:i A')
+            'time' => \Carbon\Carbon::parse($sale->created_at)->format('H:i A'),
+            'order_id' => $sale->order_id
         ];
     });
 

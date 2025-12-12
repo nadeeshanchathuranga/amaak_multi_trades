@@ -816,10 +816,11 @@
             <tr class="bg-gradient-to-r from-blue-700 via-blue-600 to-blue-700 text-white text-[14px] border-b border-blue-800">
               <th class="p-3 text-left font-semibold">#</th>
               <th class="p-3 text-center font-semibold">Sale ID</th>
-              <th class="p-3 text-center font-semibold">Time</th>
+               <th class="p-3 text-center font-semibold">Order ID</th>
               <th class="p-3 text-center font-semibold">Customer</th>
               <th class="p-3 text-center font-semibold">Payment Method</th>
               <th class="p-3 text-center font-semibold">Amount (LKR)</th>
+               <th class="p-3 text-center font-semibold">Time</th>
             </tr>
           </thead>
 
@@ -831,7 +832,7 @@
             >
               <td class="p-3 text-center">{{ index + 1 }}</td>
               <td class="p-3 text-center font-semibold text-blue-600">#{{ sale.id }}</td>
-              <td class="p-3 text-center">{{ sale.time }}</td>
+             <td class="p-3 text-center">{{ sale.order_id || 'N/A' }}</td>
               <td class="p-3 text-center">{{ sale.customer_name }}</td>
               <td class="p-3 text-center">
                 <span class="px-2 py-1 rounded-full text-xs font-semibold"
@@ -848,6 +849,8 @@
               <td class="p-3 text-center font-semibold text-green-600">
                 {{ sale.total_amount.toLocaleString() }}
               </td>
+             
+                <td class="p-3 text-center">{{ sale.time }}</td>
             </tr>
             <tr v-if="todaySalesData.length === 0">
               <td colspan="6" class="p-8 text-center text-gray-500 italic">
@@ -1892,7 +1895,7 @@ const downloadPDF = () => {
 
 const downloadTodayPDF = () => {
   const doc = new jsPDF();
-  const tableColumn = ["#", "Sale ID", "Time", "Customer", "Payment Method", "Amount (LKR)"];
+  const tableColumn = ["#", "Sale ID", "Time", "Customer", "Payment Method", "Amount (LKR)", "Order ID"];
   const tableRows = [];
 
   todaySalesData.value.forEach((sale, index) => {
@@ -1902,7 +1905,8 @@ const downloadTodayPDF = () => {
       sale.time,
       sale.customer_name,
       sale.payment_method,
-      sale.total_amount.toLocaleString()
+      sale.total_amount.toLocaleString(),
+      sale.order_id || 'N/A'
     ]);
   });
 
