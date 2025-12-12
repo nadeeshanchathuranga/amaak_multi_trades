@@ -532,6 +532,20 @@
      <!-- Return Bill Form -->
      <div class="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-30 overflow-auto">
         <div class="bg-white mt-20 p-20 rounded-lg shadow-lg w-full max-w-7xl">
+                   <!-- Modal Header with Close Button -->
+                   <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-2xl font-bold text-gray-900">Return Bills</h2>
+                        <button 
+                            type="button" 
+                            @click="closeReturnModal"
+                            class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-2 transition-colors duration-200"
+                            aria-label="Close modal"
+                        >
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                   </div>
                    <!-- <form @submit.prevent="submitReturnBill"> -->
                     <div error v-if="errorMessage" class="mb-4 flex items-center justify-between text-red-600 font-medium text-center text-2xl bg-red-100 rounded-lg border border-black-300 px-4 py-2">
                     {{ errorMessage }}<button type="button" class=" text-black text-align:right" @click="errorMessage=''">X</button>
