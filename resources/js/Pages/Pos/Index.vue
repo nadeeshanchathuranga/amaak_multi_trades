@@ -65,7 +65,7 @@
                     <div class="flex flex-col items-start justify-center w-full md:px-12 px-4">
                         <div class="flex items-center justify-between w-full">
                             <h2 class="md:text-5xl text-4xl font-bold text-black">Billing Details</h2>
-                          
+
                             <span class="flex cursor-pointer" @click="openReturnBills">
                                   <button class="text-xl text-blue-600 font-bold" type="button" >Return Bills</button>
                                 <img src="/images/selectpsoduct.svg" class="w-6 h-6 ml-2" />
@@ -84,6 +84,7 @@
                             <div class="flex items-center justify-center w-3/4">
                                 <label for="search" class="text-xl font-medium text-gray-800"></label>
                                 <input v-model="form.barcode" id="search" type="text" placeholder="Enter BarCode Here!"
+                                    @keyup.enter="submitBarcode"
                                     class="w-full h-16 px-4 rounded-l-2xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
                             </div>
                             <div class="flex items-end justify-end w-1/4">
@@ -94,37 +95,6 @@
                             </div>
                         </div>
 
-                        <div class="max-w-xs relative space-y-3">
-              <!-- <label for="searchProducts" class="text-gray-900">
-                Type the product name to search
-              </label>
-
-              <input
-                v-model="form.barcode"
-                id="searchProducts"
-                type="text"
-                placeholder="Enter Product Name or BarCode!"
-                class="w-full h-16 px-4 rounded-l-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-              /> -->
-
-              <ul
-                v-if="searchResults.length"
-                class="w-full rounded bg-white border border-gray-300 px-4 py-2 space-y-1 absolute z-10"
-              >
-                <li class="px-1 pt-1 pb-2 font-bold border-b border-gray-200">
-                  Showing {{ searchResults.length }} results
-                </li>
-                <li
-                  v-for="product in searchResults"
-                  :key="product.id"
-                  @click="selectProduct(product.name)"
-                  class="cursor-pointer hover:bg-gray-100 p-1"
-                >
-                  {{ product.name }} ({{ product.barcode || product.code }})
-                </li>
-              </ul>
-            </div>
-
                         <div class="w-full text-center">
                             <p v-if="products.length === 0" class="text-2xl text-red-500">
                                 No Products to show
@@ -132,7 +102,7 @@
                         </div>
 
                         <!-- Return Items Section -->
-                        <div v-for="item in returnItems" :key="'return-' + item.id" 
+                        <div v-for="item in returnItems" :key="'return-' + item.id"
                             class="flex items-center w-full py-4 border-b-2 border-red-500 bg-red-50">
                             <div class="flex w-1/6">
                                 <img :src="item.product?.image ? `/${item.product.image}` : '/images/placeholder.jpg'"
@@ -145,17 +115,17 @@
                                             <p class="text-xl text-red-600 font-bold">RETURN: {{ item.product?.name }}</p>
                                             <span class="px-2 py-1 bg-red-600 text-white text-xs rounded">Return Item</span>
                                         </div>
-                                        <span v-if="item.return_type" 
+                                        <span v-if="item.return_type"
                                             :class="[
                                                 'px-3 py-1 text-sm font-bold rounded-lg',
-                                                item.return_type === 'cash' 
-                                                    ? 'bg-green-100 text-green-800 border-2 border-green-600' 
+                                                item.return_type === 'cash'
+                                                    ? 'bg-green-100 text-green-800 border-2 border-green-600'
                                                     : 'bg-blue-100 text-blue-800 border-2 border-blue-600'
                                             ]">
                                             {{ item.return_type === 'cash' ? '💵 CASH RETURN' : '🔄 P2P RETURN' }}
                                         </span>
                                     </div>
-                                    
+
                                     <!-- Return Type Selection -->
                                     <div class="flex items-center space-x-4 mt-2 p-3 bg-gray-50 rounded-lg border-2 border-gray-300">
                                         <label class="text-lg font-semibold text-gray-700">Return Type:<span class="text-red-500">*</span></label>
@@ -280,7 +250,7 @@
         Remove {{ item.discount }}% Off
       </p>
 
-      
+
     </div>
   </div>
 
@@ -289,7 +259,7 @@
 
 
                                 <div class="flex items-center justify-between w-full">
-                                    
+
                                     <div class="flex space-x-4">
                                         <p @click="incrementQuantity(item.id)"
                                             class="flex items-center justify-center w-8 h-8 text-white bg-black rounded cursor-pointer">
@@ -320,7 +290,7 @@
                                         </p>
 
 
-                                         
+
                                     </div>
                                     <div class="flex items-center justify-center">
                                         <div>
@@ -330,7 +300,7 @@
  <div class="flex items-center space-x-2">
   <!-- Discount value -->
 
- 
+
 
   <input
     type="number"
@@ -355,11 +325,11 @@
 </div>
 
 
- 
 
 
 
- 
+
+
                                             <p class="text-2xl font-bold text-black text-right">
                                                {{ item.apply_discount ? item.discounted_price : item.selling_price }} LKR
                                             </p>
@@ -486,9 +456,9 @@
                             <!-- Credit Bill Checkbox -->
                             <div class="flex items-center justify-center w-full pt-4">
                                 <label class="flex items-center space-x-3 cursor-pointer">
-                                    <input 
-                                        type="checkbox" 
-                                        v-model="isCreditBill" 
+                                    <input
+                                        type="checkbox"
+                                        v-model="isCreditBill"
                                         @change="handleCreditBillChange"
                                         class="w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                                     />
@@ -519,7 +489,7 @@
         :employee="modalEmployee" :cashier="loggedInUser" :customer="modalCustomer" :orderid="actualOrderId || orderid" :cash="cash"
         :balance="balance" :subTotal="subtotal" :totalDiscount="totalDiscount" :total="total"
         :custom_discount_type="custom_discount_type"
-        :custom_discount="custom_discount" :paymentMethod="selectedPaymentMethod" :kokoSurcharge="kokoSurcharge" 
+        :custom_discount="custom_discount" :paymentMethod="selectedPaymentMethod" :kokoSurcharge="kokoSurcharge"
         :returnAmount="returnAmount" :newProductAmount="newProductAmount" />
     <AlertModel v-model:open="isAlertModalOpen" :message="message" />
 
@@ -535,8 +505,8 @@
                    <!-- Modal Header with Close Button -->
                    <div class="flex items-center justify-between mb-6">
                         <h2 class="text-2xl font-bold text-gray-900">Return Bills</h2>
-                        <button 
-                            type="button" 
+                        <button
+                            type="button"
                             @click="closeReturnModal"
                             class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-2 transition-colors duration-200"
                             aria-label="Close modal"
@@ -604,7 +574,7 @@
                                         </td>
                                         <td class="border border-gray-300 px-4 py-2">{{ item.unit_price }} LKR</td>
                                         <td class="border border-gray-300 px-4 py-2">
-                                            <button @click="addReturnItemToBilling(item)" 
+                                            <button @click="addReturnItemToBilling(item)"
                                                 class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700">
                                                 Add to Return
                                             </button>
@@ -881,7 +851,7 @@ const validateReturnItems = () => {
     }
 
     // Validate that return quantities don't exceed remaining quantities
-    const exceedsRemaining = returnItems.value.some(item => 
+    const exceedsRemaining = returnItems.value.some(item =>
         item.return_quantity > item.remaining_quantity
     );
     if (exceedsRemaining) {
@@ -996,7 +966,7 @@ const submitOrder = async () => {
         message.value = "Cash is not enough";
         return;
     }
-    
+
     try {
         // Prepare return items data
         const returnItemsData = returnItems.value.map(item => ({
@@ -1032,7 +1002,7 @@ const submitOrder = async () => {
                 const returnBillData = response.data.return_bill_data;
                 const returnOrderId = response.data.return_order_id;
                 const returnSaleData = response.data.return_sale_data;
-                
+
                 // If P2P return, show success modal with print option
                 if (returnSaleData) {
                     // Update all the reactive variables used by the modal - use MODAL refs only
@@ -1043,17 +1013,17 @@ const submitOrder = async () => {
                     cash.value = returnSaleData.total_amount || 0;
                     custom_discount.value = 0;
                     selectedPaymentMethod.value = returnSaleData.payment_method || "";
-                    
+
                     // Set return amount and new product amount for P2P bill display
                     returnAmount.value = returnSaleData.return_amount || 0;
                     newProductAmount.value = returnSaleData.new_product_amount || 0;
-                    
+
                     // Mark this as a return bill print modal (no auto-refresh on close)
                     isReturnBillPrinted.value = true;
-                    
+
                     // Show the success modal with print option
                     isSuccessModalOpen.value = true;
-                    
+
                     console.log('P2P Return Bill Data for Print:', returnSaleData);
                 } else {
                     // Fallback to alert modal
@@ -1065,14 +1035,14 @@ const submitOrder = async () => {
                         `Net Amount: ${returnBillData.totals.net_amount.toFixed(2)} LKR\n\n` +
                         `Original Sale Updated. New Return Bill Created.`;
                 }
-                
+
                 console.log('P2P Return Bill Data:', {
                     return_order_id: returnOrderId,
                     original_sale_id: response.data.original_sale_id,
                     return_sale_id: response.data.return_sale_id,
                     ...returnBillData
                 });
-                
+
                 // Clear data and close return form modal
                 // DON'T clear products.value immediately - it may still have POS items
                 await nextTick();
@@ -1082,7 +1052,7 @@ const submitOrder = async () => {
                 selectedSale.value = null;
                 selectedSaleEmployee.value = null;
                 isReturnBillsModalOpen.value = false; // Close the return form modal
-                
+
                 // Don't refresh immediately if modal is showing - let user print first
                 if (!returnSaleData) {
                     refreshData();
@@ -1098,7 +1068,7 @@ const submitOrder = async () => {
             if (response.data.success) {
                 const returnBillData = response.data.return_bill_data;
                 const returnSaleData = response.data.return_sale_data;
-                
+
                 // Show return receipt with print option if data is available
                 if (returnSaleData) {
                     // Prepare data for the success modal - use MODAL refs only
@@ -1109,13 +1079,13 @@ const submitOrder = async () => {
                     cash.value = returnSaleData.total_amount || 0;
                     custom_discount.value = 0;
                     selectedPaymentMethod.value = returnSaleData.payment_method || "P2P Return";
-                    
+
                     // Mark this as a return bill print modal (no auto-refresh on close)
                     isReturnBillPrinted.value = true;
-                    
+
                     // Show success modal with print option
                     isSuccessModalOpen.value = true;
-                    
+
                     console.log('P2P Return Receipt Data:', returnSaleData);
                 } else {
                     // Fallback to alert modal
@@ -1125,7 +1095,7 @@ const submitOrder = async () => {
                         `Returned Amount: ${returnBillData.totals.return_amount.toFixed(2)} LKR\n` +
                         `Original Sale Total Updated.`;
                 }
-                
+
                 // Clear return items and close the return form modal
                 // Use nextTick to ensure modal is fully rendered before clearing
                 await nextTick();
@@ -1135,7 +1105,7 @@ const submitOrder = async () => {
                 selectedSale.value = null;
                 selectedSaleEmployee.value = null;
                 isReturnBillsModalOpen.value = false; // Close the return form modal
-                
+
                 // Don't refresh immediately - let user print the receipt first
                 // refreshData will be called when modal closes
             }
@@ -1149,7 +1119,7 @@ const submitOrder = async () => {
             if (response.data.success) {
                 const returnBillData = response.data.return_bill_data;
                 const cashReturnData = response.data.cash_return_data;
-                
+
                 // Show return receipt with print option if data is available
                 if (cashReturnData) {
                     // Prepare data for the success modal - use MODAL refs only
@@ -1160,13 +1130,13 @@ const submitOrder = async () => {
                     cash.value = cashReturnData.total_amount || 0;
                     custom_discount.value = 0;
                     selectedPaymentMethod.value = cashReturnData.payment_method || "Cash Return";
-                    
+
                     // Mark this as a return bill print modal (no auto-refresh on close)
                     isReturnBillPrinted.value = true;
-                    
+
                     // Show success modal with print option
                     isSuccessModalOpen.value = true;
-                    
+
                     console.log('Cash Return Receipt Data:', cashReturnData);
                 } else {
                     // Fallback to alert modal
@@ -1175,7 +1145,7 @@ const submitOrder = async () => {
                         `Returned Amount: ${returnBillData.totals.return_amount.toFixed(2)} LKR\n` +
                         `Original Sale Total Updated.`;
                 }
-                
+
                 // Clear return items and close return form modal
                 // Use nextTick to ensure modal is fully rendered before clearing
                 await nextTick();
@@ -1185,11 +1155,11 @@ const submitOrder = async () => {
                 selectedSale.value = null;
                 selectedSaleEmployee.value = null;
                 isReturnBillsModalOpen.value = false; // Close the return form modal
-                
+
                 // Don't refresh immediately - let user print the receipt first
                 // refreshData will be called when modal closes
             }
-        } 
+        }
         // Regular sale (no returns)
         else {
             const response = await axios.post("/pos/submit", {
@@ -1210,16 +1180,16 @@ const submitOrder = async () => {
             modalCustomer.value = customer.value;
             // Set modal employee data for receipt display
             modalEmployee.value = employee.value || { name: "" };
-            
+
             // Debug logging
             console.log('Customer data:', customer.value);
             console.log('Employee data:', employee.value);
             console.log('Modal Customer:', modalCustomer.value);
             console.log('Modal Employee:', modalEmployee.value);
-            
+
             isSuccessModalOpen.value = true;
             console.log(response.data);
-            
+
             // Clear return items if any
             returnItems.value = [];
         }
@@ -1243,7 +1213,7 @@ const filteredSaleItems = computed(() => {
 
 const returnBillTotal = computed(() => {
     if (!returnItems.value.length) return 0;
-    
+
     // Calculate total return amount for ALL returns (cash and P2P)
     // P2P returns will show as deduction, and manually added products will add to the total
     return returnItems.value.reduce((sum, item) => {
@@ -1279,10 +1249,10 @@ watch(() => ReturnbillForm.order_id, async (newOrderId) => {
             const response = await axios.post('/api/sale/items', {
                 sale_id: newOrderId
             });
-            
+
             // Set employee info
             selectedSaleEmployee.value = response.data.employee;
-            
+
             // Initialize sale items with return fields
             saleItemsState.value = response.data.saleItems.map((item) => ({
                 ...item,
@@ -1389,7 +1359,7 @@ const total = computed(() => {
     }
 
     let baseTotal = subtotalValue - discountValue - customValue - returnAmount;
-    
+
     // Add Koko surcharge if Koko payment method is selected
     if (selectedPaymentMethod.value === 'Koko') {
         const kokoSurcharge = baseTotal * 0.115; // 11.5% surcharge
@@ -1471,11 +1441,11 @@ const submitCoupon = async () => {
 const submitBarcode = async () => {
     // Store the barcode value before clearing
     const barcodeValue = form.barcode;
-    
+
     // Clear immediately to prevent overlay from showing
     form.barcode = "";
     searchTerm.value = "";
-    
+
     try {
         // Send POST request to the backend
         const response = await axios.post(route("pos.getProduct"), {
@@ -1511,7 +1481,7 @@ const submitBarcode = async () => {
 
             product.value = fetchedProduct; // Update product state for individual display
             error.value = null; // Clear any previous errors
-            
+
             console.log(
                 "Product fetched successfully and added to cart:",
                 fetchedProduct
@@ -1535,6 +1505,11 @@ const submitBarcode = async () => {
 
 // Handle input from the barcode scanner
 const handleScannerInput = (event) => {
+    // Ignore if the barcode input field is focused (manual entry)
+    if (document.activeElement && document.activeElement.id === 'search') {
+        return;
+    }
+
     clearTimeout(timeout); // Clear the timeout for each keypress
     if (event.key === "Enter") {
         // Barcode scanning completed
@@ -1647,16 +1622,16 @@ const searchResults = computed(() => {
   }
 
   const searchLower = searchTerm.value.toLowerCase();
-  
+
   return props.products
     .filter((product) => {
       const name = product.name.toLowerCase();
       const barcode = product.barcode?.toLowerCase() || '';
       const code = product.code?.toLowerCase() || '';
-      
+
       // Match if name starts with search term, or exact barcode/code match
-      return name.startsWith(searchLower) || 
-             barcode === searchLower || 
+      return name.startsWith(searchLower) ||
+             barcode === searchLower ||
              code === searchLower ||
              barcode.startsWith(searchLower) ||
              code.startsWith(searchLower);
@@ -1665,10 +1640,10 @@ const searchResults = computed(() => {
       // Sort by priority: exact start match first, then alphabetical
       const aStarts = a.name.toLowerCase().startsWith(searchLower);
       const bStarts = b.name.toLowerCase().startsWith(searchLower);
-      
+
       if (aStarts && !bStarts) return -1;
       if (!aStarts && bStarts) return 1;
-      
+
       return a.name.localeCompare(b.name);
     })
     .slice(0, 10); // Limit to 10 results
