@@ -18,10 +18,10 @@ class ProductSeeder extends Seeder
     {
         // Disable foreign key checks
         \DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        
+
         // Clear existing products
         Product::truncate();
-        
+
         // Re-enable foreign key checks
         \DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 

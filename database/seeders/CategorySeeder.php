@@ -14,10 +14,10 @@ class CategorySeeder extends Seeder
     {
         // Disable foreign key checks
         \DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        
+
         // Clear existing categories
         Category::truncate();
-        
+
         // Re-enable foreign key checks
         \DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
