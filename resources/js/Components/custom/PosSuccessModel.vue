@@ -112,7 +112,7 @@
        console.log('Customer prop:', props.customer);
        console.log('Employee prop:', props.employee);
        console.log('Cashier prop:', props.cashier);
-       
+
        // Calculate totals from props.products
        const subTotal = props.products.reduce(
            (sum, product) => {
@@ -130,7 +130,7 @@
                if (itemPrice < 0) {
                    return total; // Don't discount returns
                }
-               
+
                // Check if item has a discount
                if (item.discount && item.discount > 0 && item.apply_discount == true) {
                    const sellingPrice = parseFloat(item.selling_price || item.unit_price || 0);
@@ -153,7 +153,7 @@
                const price = product.discount > 0 && product.apply_discount
                    ? product.discounted_price  // Use discounted price if discount is applied
                    : basePrice;    // Use selling price or unit price if no discount
-               
+
                // Check if this is a return item (negative price or quantity)
                const isReturn = parseFloat(basePrice) < 0 || parseFloat(product.quantity) < 0;
                const absPrice = Math.abs(basePrice);
@@ -424,7 +424,7 @@
          <p>THANK YOU COME AGAIN</p>
          <p class="italic">Let the quality define its own standards</p>
          <p style="font-weight: bold;">Powered by JAAN Network Ltd.</p>
-        
+
        </div>
      </div>
    </body>
@@ -451,7 +451,7 @@
        if (frameDoc && frameDoc.document) {
            frameDoc = frameDoc.document;
        }
-       
+
        frameDoc.open();
        frameDoc.write(receiptHTML);
        frameDoc.close();
