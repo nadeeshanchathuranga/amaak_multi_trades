@@ -308,8 +308,8 @@
        <div class="section">
          <div class="info-row">
            <div>
-             <p>Date:</p>
-             <small>${new Date().toLocaleDateString()} </small>
+             <p>Date & Time:</p>
+             <small>${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</small>
            </div>
            <div>
              <p>Order No:</p>
@@ -331,14 +331,10 @@
              <p>Employee:</p>
              <small>${props.employee?.name || 'No Employee Selected'}</small>
            </div>
-           <div></div>
-         </div>
-         <div class="info-row">
-           <div>
+           <div style="text-align: right;">
              <p>Payment Method:</p>
              <small>${props.paymentMethod || 'Cash'}</small>
            </div>
-           <div></div>
          </div>
        </div>
 
