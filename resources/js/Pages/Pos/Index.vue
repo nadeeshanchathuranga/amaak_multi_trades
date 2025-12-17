@@ -2218,7 +2218,7 @@ const handleSelectedProducts = (selectedProducts) => {
             products.value.push({
                 ...fetchedProduct,
                 quantity: 1,
-                discount_type: 'percent',
+                 discount_type: 'percent',
                 apply_discount: false, // Default additional attribute
                 is_p2p_product: isReturnMode.value, // Mark as P2P product if in return mode
             });
