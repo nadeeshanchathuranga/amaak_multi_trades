@@ -25,7 +25,7 @@ class PosController extends Controller
 {
     public function index(Request $request)
     {
-        if (!Gate::allows('hasRole', ['Admin', 'Cashier'])) {
+        if (!Gate::allows('hasRole', ['Admin', 'Cashier', 'Operator'])) {
             abort(403, 'Unauthorized');
         }
         $sales = Sale::with('customer','employee')->get();
@@ -60,7 +60,7 @@ class PosController extends Controller
 
     public function getProduct(Request $request)
     {
-        if (!Gate::allows('hasRole', ['Admin', 'Cashier'])) {
+        if (!Gate::allows('hasRole', ['Admin', 'Cashier', 'Operator'])) {
             abort(403, 'Unauthorized');
         }
 
@@ -86,6 +86,10 @@ class PosController extends Controller
 
     public function getCoupon(Request $request)
     {
+        if (!Gate::allows('hasRole', ['Admin', 'Cashier', 'Operator'])) {
+            abort(403, 'Unauthorized');
+        }
+
         $request->validate(
             ['code' => 'required|string'],
             ['code.required' => 'The coupon code missing.', 'code.string' => 'The coupon code must be a valid string.']
@@ -107,7 +111,7 @@ class PosController extends Controller
     public function submit(Request $request)
     {
 
-        if (!Gate::allows('hasRole', ['Admin', 'Cashier'])) {
+        if (!Gate::allows('hasRole', ['Admin', 'Cashier', 'Operator'])) {
             abort(403, 'Unauthorized');
         }
         // Combine countryCode and contactNumber to create the phone field

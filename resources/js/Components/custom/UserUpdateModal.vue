@@ -68,7 +68,7 @@
     <p class="mt-1 text-xs text-gray-300">Admin role cannot be changed here.</p>
   </div>
 
-  <!-- Otherwise → allow Manager / Cashier -->
+  <!-- Otherwise → allow Manager / Cashier / Operator -->
   <select
     v-else
     v-model="form.role_type"
@@ -77,6 +77,7 @@
   >
     <option value="Manager">Manager</option>
     <option value="Cashier">Cashier</option>
+    <option value="Operator">Operator</option>
   </select>
 
   <p v-if="form.errors.role_type" class="mt-2 text-sm text-red-400">

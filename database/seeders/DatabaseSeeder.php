@@ -33,6 +33,12 @@ class DatabaseSeeder extends Seeder
                 'role_type' => 'Cashier',
                 'password'  => 'cashier@amaak2025',
             ],
+            [
+                'name'      => 'operator',
+                'email'     => 'operator@operator.com',
+                'role_type' => 'Operator',
+                'password'  => 'operator@amaak2025',
+            ],
         ];
 
         foreach ($users as $u) {

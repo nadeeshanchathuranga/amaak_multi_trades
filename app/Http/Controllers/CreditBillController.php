@@ -7,11 +7,16 @@ use Inertia\Inertia;
 use App\Models\CreditBill;
 use App\Models\Customer;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class CreditBillController extends Controller
 {
     public function index()
     {
+        if (!Gate::allows('hasRole', ['Admin', 'Operator'])) {
+            abort(403, 'Unauthorized');
+        }
+
         $allCreditBills = CreditBill::with(['customer', 'sale'])
             ->orderBy('created_at', 'desc')
             ->get();
@@ -34,6 +39,10 @@ class CreditBillController extends Controller
 
     public function show($id)
     {
+        if (!Gate::allows('hasRole', ['Admin', 'Operator'])) {
+            abort(403, 'Unauthorized');
+        }
+
         $creditBill = CreditBill::with(['customer', 'sale.saleItems.product'])
             ->findOrFail($id);
 
@@ -44,6 +53,10 @@ class CreditBillController extends Controller
 
     public function updatePayment(Request $request, $id)
     {
+        if (!Gate::allows('hasRole', ['Admin', 'Operator'])) {
+            abort(403, 'Unauthorized');
+        }
+
         $request->validate([
             'payment_amount' => 'required|numeric|min:0',
             'notes' => 'nullable|string|max:500',
@@ -79,6 +92,10 @@ class CreditBillController extends Controller
 
     public function markAsPaid($id)
     {
+        if (!Gate::allows('hasRole', ['Admin', 'Operator'])) {
+            abort(403, 'Unauthorized');
+        }
+
         $creditBill = CreditBill::findOrFail($id);
         
         $creditBill->update([
@@ -92,6 +109,10 @@ class CreditBillController extends Controller
 
     public function destroy($id)
     {
+        if (!Gate::allows('hasRole', ['Admin', 'Operator'])) {
+            abort(403, 'Unauthorized');
+        }
+
         $creditBill = CreditBill::findOrFail($id);
         $creditBill->delete();
 

@@ -36,7 +36,7 @@
               >Add Product</DialogTitle
             >
 
-            <div class="grid grid-cols-1 gap-4 pt-4">
+            <div class="grid grid-cols-1 gap-4 pt-4" v-if="HasRole(['Admin', 'Manager'])">
               <!-- Single Column with Buttons -->
               <div class="p-4 rounded-lg text-center">
                 <button
@@ -658,6 +658,7 @@ import {
 } from "@headlessui/vue";
 import { ref, computed, watch } from "vue";
 import { useForm } from "@inertiajs/vue3";
+import { HasRole } from "@/Utils/Permissions";
 
 const emit = defineEmits(["update:open"]);
 
