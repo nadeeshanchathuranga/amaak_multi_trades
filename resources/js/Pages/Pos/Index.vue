@@ -61,43 +61,202 @@
                         </p>
                     </div>
                 </div>
-                <div class="flex md:w-1/2 w-full p-8 border-4 border-black rounded-3xl">
+                <div class="flex md:w-1/2 w-full p-8 border-4 border-black rounded-3xl" :class="{ 'border-red-500 bg-red-50': isReturnMode }">
                     <div class="flex flex-col items-start justify-center w-full md:px-12 px-4">
                         <div class="flex items-center justify-between w-full">
-                            <h2 class="md:text-5xl text-4xl font-bold text-black">Billing Details</h2>
+                            <h2 class="md:text-5xl text-4xl font-bold text-black" :class="{ 'text-red-600': isReturnMode }">
+                                {{ isReturnMode ? 'Return Mode' : 'Billing Details' }}
+                            </h2>
 
-                            <span class="flex cursor-pointer" @click="openReturnBills">
-                                  <button class="text-xl text-blue-600 font-bold" type="button" >Return Bills</button>
-                                <img src="/images/selectpsoduct.svg" class="w-6 h-6 ml-2" />
-                            </span>
-                            <span class="flex cursor-pointer" @click="isSelectModalOpen = true">
-                                <p class="text-xl text-blue-600 font-bold">User Manual</p>
-                                <img src="/images/selectpsoduct.svg" class="w-6 h-6 ml-2" />
-                            </span>
+                            <div class="flex items-center space-x-4">
+                                <!-- Return Mode Toggle Button -->
+                                <button
+                                    @click="toggleReturnMode"
+                                    :class="[
+                                        'px-4 py-2 text-lg font-bold rounded-xl transition-all duration-300',
+                                        isReturnMode
+                                            ? 'bg-red-600 text-white hover:bg-red-700'
+                                            : 'bg-orange-500 text-white hover:bg-orange-600'
+                                    ]"
+                                >
+                                    <i :class="isReturnMode ? 'ri-close-line' : 'ri-exchange-line'" class="mr-2"></i>
+                                    {{ isReturnMode ? 'Exit Return Mode' : 'Return Mode' }}
+                                </button>
+
+                                <span class="flex cursor-pointer" @click="isSelectModalOpen = true">
+                                    <p class="text-xl text-blue-600 font-bold">User Manual</p>
+                                    <img src="/images/selectpsoduct.svg" class="w-6 h-6 ml-2" />
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Return Mode Banner -->
+                        <div v-if="isReturnMode" class="w-full mt-4 p-4 bg-red-100 border-2 border-red-500 rounded-xl">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <i class="ri-exchange-funds-line text-3xl text-red-600"></i>
+                                    <div>
+                                        <p class="text-xl font-bold text-red-700">Return Mode Active</p>
+                                        <p class="text-sm text-red-600">Select an order to process returns. Updates will be applied to the same order.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Return Mode Order Selection -->
+                        <div v-if="isReturnMode && !returnModeSelectedSale" class="w-full mt-4 p-6 bg-white border-2 border-gray-300 rounded-xl shadow-lg">
+                            <p class="text-xl font-bold text-gray-800 mb-4">
+                                <i class="ri-search-line mr-2"></i>Select Order to Process Return
+                            </p>
+
+                            <!-- Search Input -->
+                            <div class="mb-4">
+                                <input
+                                    v-model="returnModeSearchQuery"
+                                    type="text"
+                                    placeholder="Search by Order ID or Customer Name..."
+                                    class="w-full h-14 px-4 text-lg border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                />
+                            </div>
+
+                            <!-- Orders List -->
+                            <div class="max-h-80 overflow-y-auto border border-gray-200 rounded-lg">
+                                <div
+                                    v-for="sale in filteredSalesForReturnMode"
+                                    :key="sale.id"
+                                    @click="loadOrderForReturnMode(sale.id)"
+                                    class="p-4 border-b border-gray-200 cursor-pointer hover:bg-red-50 transition-colors"
+                                >
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <p class="font-bold text-lg text-gray-800">{{ sale.order_id }}</p>
+                                            <p class="text-sm text-gray-600">{{ sale.customer?.name || 'Walk-in Customer' }}</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="font-bold text-lg text-green-600">{{ sale.total_amount }} LKR</p>
+                                            <p class="text-sm text-gray-500">{{ sale.sale_date }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="filteredSalesForReturnMode.length === 0" class="p-4 text-center text-gray-500">
+                                    No orders found
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Selected Order Info in Return Mode -->
+                        <div v-if="isReturnMode && returnModeSelectedSale" class="w-full mt-4 p-4 bg-blue-50 border-2 border-blue-300 rounded-xl">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-xl font-bold text-blue-800">
+                                        <i class="ri-file-list-3-line mr-2"></i>Order: {{ returnModeSelectedSale.order_id }}
+                                    </p>
+                                    <p class="text-sm text-blue-600">Customer: {{ returnModeSelectedSale.customer?.name || 'Walk-in Customer' }}</p>
+                                    <p class="text-sm text-blue-600">Employee: {{ selectedSaleEmployee?.name || 'N/A' }}</p>
+                                    <p class="text-sm text-blue-600">Original Total: {{ returnModeSelectedSale.total_amount }} LKR</p>
+                                </div>
+                                <button
+                                    @click="returnModeSelectedSale = null; returnModeLoadedItems = []; returnItems = [];"
+                                    class="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                >
+                                    <i class="ri-refresh-line mr-1"></i>Change Order
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Available Items for Return in Return Mode -->
+                        <div v-if="isReturnMode && returnModeSelectedSale && returnModeLoadedItems.length > 0" class="w-full mt-4 p-4 bg-gray-50 border-2 border-gray-300 rounded-xl">
+                            <p class="text-lg font-bold text-gray-800 mb-3">
+                                <i class="ri-shopping-bag-line mr-2"></i>Available Items for Return
+                            </p>
+                            <div class="max-h-60 overflow-y-auto">
+                                <div
+                                    v-for="item in returnModeLoadedItems"
+                                    :key="'loaded-' + item.id"
+                                    class="flex items-center justify-between p-3 mb-2 bg-white border rounded-lg"
+                                    :class="{ 'border-green-500 bg-green-50': item.is_selected_for_return }"
+                                >
+                                    <div class="flex items-center space-x-3">
+                                        <img :src="item.product?.image ? `/${item.product.image}` : '/images/placeholder.jpg'"
+                                            alt="Product" class="w-12 h-12 object-cover rounded" />
+                                        <div>
+                                            <p class="font-semibold text-gray-800">{{ item.product?.name }}</p>
+                                            <p class="text-sm text-gray-600">
+                                                Qty: {{ item.remaining_quantity }} available
+                                            </p>
+                                            <div class="flex items-center space-x-2 text-sm">
+                                                <span v-if="item.discount && item.discount > 0" class="text-gray-400 line-through">
+                                                    {{ item.product?.selling_price }} LKR
+                                                </span>
+                                                <span class="font-bold text-green-600">@ {{ item.unit_price }} LKR</span>
+                                                <span v-if="item.discount && item.discount > 0" class="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-xs rounded">
+                                                    Discount Applied
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button
+                                        v-if="!item.is_selected_for_return"
+                                        @click="selectItemForReturn(item)"
+                                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                    >
+                                        <i class="ri-add-line mr-1"></i>Add to Return
+                                    </button>
+                                    <button
+                                        v-else
+                                        @click="deselectItemFromReturn(item.id)"
+                                        class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                                    >
+                                        <i class="ri-subtract-line mr-1"></i>Remove
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- P2P Products Section in Return Mode -->
+                        <div v-if="isReturnMode && returnItems.some(item => item.return_type === 'p2p')" class="w-full mt-4 p-4 bg-green-50 border-2 border-green-300 rounded-xl">
+                            <p class="text-lg font-bold text-green-800 mb-2">
+                                <i class="ri-swap-line mr-2"></i>P2P Exchange Products
+                            </p>
+                            <p class="text-sm text-green-700 mb-3">Add replacement products using User Manual or barcode scanner</p>
+                            <div v-if="products.length === 0" class="text-center py-4 text-green-600">
+                                <i class="ri-shopping-cart-line text-3xl"></i>
+                                <p class="mt-2">No replacement products added yet</p>
+                            </div>
                         </div>
 
                         <!-- <div class="flex items-center justify-between w-full">
                             <button >Return Bills</button>
                         </div> -->
 
-                        <div class="flex items-end justify-between w-full my-5 border-2 border-black rounded-2xl">
+                        <!-- Barcode Input - Changes context based on mode -->
+                        <div v-if="!isReturnMode || (isReturnMode && returnModeSelectedSale && returnItems.some(item => item.return_type === 'p2p'))"
+                            class="flex items-end justify-between w-full my-5 border-2 rounded-2xl"
+                            :class="isReturnMode ? 'border-green-500 bg-green-50' : 'border-black'">
                             <div class="flex items-center justify-center w-3/4">
                                 <label for="search" class="text-xl font-medium text-gray-800"></label>
-                                <input v-model="form.barcode" id="search" type="text" placeholder="Enter BarCode Here!"
+                                <input v-model="form.barcode" id="search" type="text"
+                                    :placeholder="isReturnMode ? 'Scan/Enter Replacement Product BarCode' : 'Enter BarCode Here!'"
                                     @keyup.enter="submitBarcode"
                                     class="w-full h-16 px-4 rounded-l-2xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
                             </div>
                             <div class="flex items-end justify-end w-1/4">
                                 <button @click="submitBarcode"
-                                    class="px-12 py-4 text-2xl font-bold tracking-wider text-white uppercase bg-blue-600 rounded-r-xl">
-                                    Enter
+                                    :class="[
+                                        'px-12 py-4 text-2xl font-bold tracking-wider text-white uppercase rounded-r-xl',
+                                        isReturnMode ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600'
+                                    ]">
+                                    {{ isReturnMode ? 'Add' : 'Enter' }}
                                 </button>
                             </div>
                         </div>
 
                         <div class="w-full text-center">
-                            <p v-if="products.length === 0" class="text-2xl text-red-500">
+                            <p v-if="products.length === 0 && !isReturnMode" class="text-2xl text-red-500">
                                 No Products to show
+                            </p>
+                            <p v-if="products.length === 0 && isReturnMode && returnModeSelectedSale && returnItems.some(item => item.return_type === 'p2p')" class="text-xl text-green-600">
+                                <i class="ri-information-line mr-2"></i>Add replacement products for P2P exchange above
                             </p>
                         </div>
 
@@ -159,7 +318,15 @@
                                                     <i class="ri-add-line"></i>
                                                 </p>
                                             </div>
-                                            <span class="text-lg font-bold">@ {{ item.unit_price }} LKR</span>
+                                            <div class="flex items-center space-x-2">
+                                                <span v-if="item.original_discount && item.original_discount > 0" class="text-sm text-gray-400 line-through">
+                                                    {{ item.product?.selling_price || item.original_unit_price }} LKR
+                                                </span>
+                                                <span class="text-lg font-bold text-green-700">@ {{ item.unit_price }} LKR</span>
+                                                <span v-if="item.original_discount && item.original_discount > 0" class="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-xs rounded">
+                                                    Discounted
+                                                </span>
+                                            </div>
                                         </div>
                                         <div class="text-right">
                                             <p class="text-2xl font-bold text-red-600">-{{ (item.return_quantity * item.unit_price).toFixed(2) }} LKR</p>
@@ -183,9 +350,17 @@
                             </div>
                         </div>
 
+                        <!-- P2P Replacement Products Header (only in return mode with products) -->
+                        <div v-if="isReturnMode && products.length > 0" class="w-full mt-4 mb-2 p-3 bg-green-100 border-2 border-green-500 rounded-lg">
+                            <p class="text-lg font-bold text-green-800">
+                                <i class="ri-exchange-line mr-2"></i>Replacement Products (P2P Exchange)
+                            </p>
+                        </div>
+
                         <!-- Regular Products Section -->
-                        <div class="flex items-center w-full py-4 border-b border-black" v-for="item in products"
-                            :key="item.id">
+                        <div class="flex items-center w-full py-4 border-b" v-for="item in products"
+                            :key="item.id"
+                            :class="isReturnMode ? 'border-green-500 bg-green-50' : 'border-black'">
                             <div class="flex w-1/6">
                                 <img :src="item.image ? `/${item.image}` : '/images/placeholder.jpg'
                                     " alt="Supplier Image" class="object-cover w-16 h-16 border border-gray-500" />
@@ -196,8 +371,9 @@
 
   <!-- LEFT -->
   <div class="space-y-2">
-    <p class="text-xl text-black font-semibold">
+    <p class="text-xl font-semibold" :class="isReturnMode ? 'text-green-800' : 'text-black'">
       {{ item.name }}
+      <span v-if="isReturnMode" class="ml-2 px-2 py-1 text-xs bg-green-600 text-white rounded">NEW</span>
     </p>
 
     <p class="text-xl text-black">
@@ -345,8 +521,39 @@
                             </div>
                         </div>
                         <div class="w-full pt-6 space-y-2">
+                            <!-- Return Mode Summary Header -->
+                            <div v-if="isReturnMode && returnModeSelectedSale" class="flex items-center justify-between w-full px-8 py-3 bg-blue-100 rounded-lg mb-2">
+                                <p class="text-xl font-bold text-blue-800">Original Order: {{ returnModeSelectedSale.order_id }}</p>
+                                <p class="text-xl font-bold text-blue-800">{{ returnModeSelectedSale.total_amount }} LKR</p>
+                            </div>
+
+                            <!-- Original Order Discount Info (in Return Mode) -->
+                            <div v-if="isReturnMode && returnModeSelectedSale && (originalOrderDiscount > 0 || originalOrderCustomDiscount > 0)"
+                                class="w-full px-8 py-3 bg-purple-50 border border-purple-200 rounded-lg mb-2">
+                                <p class="text-lg font-bold text-purple-800 mb-2">
+                                    <i class="ri-price-tag-3-line mr-2"></i>Original Order Discounts Applied
+                                </p>
+                                <div class="flex flex-col space-y-1 text-sm text-purple-700">
+                                    <div v-if="originalOrderDiscount > 0" class="flex justify-between">
+                                        <span>Product Discounts:</span>
+                                        <span class="font-semibold">{{ originalOrderDiscount }} LKR</span>
+                                    </div>
+                                    <div v-if="originalOrderCustomDiscount > 0" class="flex justify-between">
+                                        <span>Custom Discount:</span>
+                                        <span class="font-semibold">{{ originalOrderCustomDiscount }} LKR</span>
+                                    </div>
+                                    <div class="flex justify-between border-t border-purple-300 pt-1 mt-1">
+                                        <span class="font-bold">Total Original Discounts:</span>
+                                        <span class="font-bold">{{ (parseFloat(originalOrderDiscount) + parseFloat(originalOrderCustomDiscount)).toFixed(2) }} LKR</span>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-purple-600 mt-2 italic">
+                                    Note: Return prices already reflect the discounted amounts paid
+                                </p>
+                            </div>
+
                             <div class="flex items-center justify-between w-full px-8">
-                                <p class="text-xl">Sub Total</p>
+                                <p class="text-xl">{{ isReturnMode ? 'New Products Total' : 'Sub Total' }}</p>
                                 <p class="text-xl">{{ subtotal }} LKR</p>
                             </div>
                             <div class="flex items-center justify-between w-full px-8 py-2 pb-4 border-b border-black">
@@ -356,6 +563,24 @@
                             <div v-if="returnItems.length > 0" class="flex items-center justify-between w-full px-8 py-2 pb-4 border-b border-black bg-red-50">
                                 <p class="text-xl text-red-600 font-bold">Return Amount</p>
                                 <p class="text-xl text-red-600 font-bold">( {{ returnBillTotal.toFixed(2) }} LKR )</p>
+                            </div>
+
+                            <!-- Custom Discount Display for Return Mode -->
+                            <div v-if="isReturnMode && custom_discount > 0" class="flex items-center justify-between w-full px-8 py-2 pb-4 border-b border-black bg-orange-50">
+                                <p class="text-xl text-orange-600 font-bold">
+                                    Return Discount {{ custom_discount_type === 'percent' ? `(${custom_discount}%)` : '' }}
+                                </p>
+                                <p class="text-xl text-orange-600 font-bold">( {{ customDiscountValue.toFixed(2) }} LKR )</p>
+                            </div>
+
+                            <!-- Return Mode Net Amount -->
+                            <div v-if="isReturnMode && returnItems.length > 0" class="flex items-center justify-between w-full px-8 py-3 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
+                                <p class="text-xl font-bold text-yellow-800">
+                                    <i class="ri-calculator-line mr-2"></i>Net {{ netReturnAmount >= 0 ? 'Receivable' : 'Refundable' }}
+                                </p>
+                                <p class="text-xl font-bold" :class="netReturnAmount >= 0 ? 'text-green-600' : 'text-red-600'">
+                                    {{ Math.abs(netReturnAmount).toFixed(2) }} LKR
+                                </p>
                             </div>
                             <!-- <div class="flex items-center justify-between w-full px-8 pt-4 pb-4 border-b border-black">
                 <p class="text-xl text-black">Custom Discount</p>
@@ -368,7 +593,7 @@
               </div> -->
 
                             <div class="flex items-center justify-between w-full px-8 pt-4 pb-4 border-b border-black">
-                                <p class="text-xl text-black">Custom Discount</p>
+                                <p class="text-xl text-black">{{ isReturnMode ? 'Return Discount' : 'Custom Discount' }}</p>
                                 <span class="flex items-center">
                                     <CurrencyInput v-model="custom_discount" @blur="validateCustomDiscount"
                                         placeholder="Enter value" class=" rounded-md px-2 py-1 text-black text-md" />
@@ -392,7 +617,12 @@
                             </div>
                             <div class="flex items-center justify-between w-full px-8 pt-4">
                                 <p class="text-3xl text-black">Total</p>
-                                <p class="text-3xl text-black">{{ total }} LKR</p>
+                                <div class="text-right">
+                                    <p v-if="isReturnMode && (custom_discount > 0 || totalDiscount > 0)" class="text-lg text-gray-400 line-through">
+                                        {{ (subtotal - returnBillTotal).toFixed(2) }} LKR
+                                    </p>
+                                    <p class="text-3xl text-black font-bold">{{ total }} LKR</p>
+                                </div>
                             </div>
 
 
@@ -402,7 +632,8 @@
                             </div>
                         </div>
 
-                        <div class="w-full my-5">
+                        <!-- Coupon Section - Hidden in Return Mode -->
+                        <div v-if="!isReturnMode" class="w-full my-5">
                             <div class="relative flex items-center">
                                 <!-- Input Field -->
                                 <label for="coupon" class="sr-only">Coupon Code</label>
@@ -425,7 +656,8 @@
                         </div>
 
                         <div class="flex flex-col w-full space-y-8">
-                            <div class="flex items-center justify-center w-full pt-8 space-x-8">
+                            <!-- Hide payment method and credit bill options in return mode -->
+                            <div v-if="!isReturnMode" class="flex items-center justify-center w-full pt-8 space-x-8">
                                 <p class="text-xl text-black">Payment Method :</p>
                                 <div @click="selectPaymentMethod('cash')" :class="[
                                     'cursor-pointer w-[100px]  border border-black rounded-xl flex flex-col justify-center items-center text-center',
@@ -453,8 +685,8 @@
                                 </div>
                             </div>
 
-                            <!-- Credit Bill Checkbox -->
-                            <div class="flex items-center justify-center w-full pt-4">
+                            <!-- Credit Bill Checkbox - Hidden in Return Mode -->
+                            <div v-if="!isReturnMode" class="flex items-center justify-center w-full pt-4">
                                 <label class="flex items-center space-x-3 cursor-pointer">
                                     <input
                                         type="checkbox"
@@ -467,7 +699,22 @@
                             </div>
 
                             <div class="flex items-center justify-center w-full">
-                                <button @click="() => {
+                                <!-- Return Mode Submit Button -->
+                                <button v-if="isReturnMode"
+                                    @click="submitReturnModeOrder"
+                                    type="button"
+                                    :disabled="returnItems.length === 0"
+                                    :class="[
+                                        'w-full py-4 text-2xl font-bold tracking-wider text-center text-white uppercase rounded-xl transition-colors',
+                                        returnItems.length === 0
+                                            ? 'bg-gray-400 cursor-not-allowed'
+                                            : 'bg-red-600 hover:bg-red-700 cursor-pointer',
+                                    ]"
+                                >
+                                    <i class="pr-4 ri-exchange-funds-line"></i> Process Return
+                                </button>
+                                <!-- Regular Order Submit Button -->
+                                <button v-else @click="() => {
                                     submitOrder();
                                 }
                                     " type="button" :disabled="products.length === 0 && returnItems.length === 0" :class="[
@@ -646,6 +893,15 @@ const actualOrderId = ref(''); // For storing actual order IDs (returns, etc.)
 
 const errorMessage = ref("");
 
+// Return Mode State
+const isReturnMode = ref(false);
+const returnModeOrderId = ref('');
+const returnModeSelectedSale = ref(null);
+const returnModeSearchQuery = ref('');
+const returnModeLoadedItems = ref([]); // Items loaded from original order for return processing
+const originalOrderDiscount = ref(0); // Original order-level discount
+const originalOrderCustomDiscount = ref(0); // Original custom discount from order
+
 const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
 
 const onDiscountChange = (item) => {
@@ -771,7 +1027,320 @@ const addReturnItemToBilling = (saleItem) => {
 
 const removeReturnItem = (item) => {
     returnItems.value = returnItems.value.filter(r => r.id !== item.id);
+    // If in return mode and all items removed, also clear from returnModeLoadedItems
+    if (isReturnMode.value) {
+        const idx = returnModeLoadedItems.value.findIndex(i => i.id === item.id);
+        if (idx !== -1) {
+            returnModeLoadedItems.value[idx].is_selected_for_return = false;
+        }
+    }
 };
+
+// ============ RETURN MODE FUNCTIONS ============
+
+// Toggle Return Mode
+const toggleReturnMode = () => {
+    if (isReturnMode.value) {
+        // Exiting return mode - clear all return mode data
+        exitReturnMode();
+    } else {
+        // Entering return mode
+        isReturnMode.value = true;
+        // Clear any existing products and return items
+        products.value = [];
+        returnItems.value = [];
+        returnModeLoadedItems.value = [];
+        returnModeSelectedSale.value = null;
+        returnModeOrderId.value = '';
+        returnModeSearchQuery.value = '';
+        custom_discount.value = 0;
+        cash.value = 0;
+    }
+};
+
+// Exit Return Mode
+const exitReturnMode = () => {
+    isReturnMode.value = false;
+    returnModeOrderId.value = '';
+    returnModeSelectedSale.value = null;
+    returnModeSearchQuery.value = '';
+    returnModeLoadedItems.value = [];
+    returnItems.value = [];
+    products.value = [];
+    custom_discount.value = 0;
+    originalOrderDiscount.value = 0;
+    originalOrderCustomDiscount.value = 0;
+    cash.value = 0;
+    errorMessage.value = '';
+};
+
+// Filter sales for search in return mode
+const filteredSalesForReturnMode = computed(() => {
+    if (!returnModeSearchQuery.value || returnModeSearchQuery.value.length < 1) {
+        return props.sales.slice(0, 20); // Show first 20 sales
+    }
+    const query = returnModeSearchQuery.value.toLowerCase();
+    return props.sales.filter(sale =>
+        sale.order_id?.toLowerCase().includes(query) ||
+        sale.customer?.name?.toLowerCase().includes(query)
+    ).slice(0, 20);
+});
+
+// Load order items for return mode
+const loadOrderForReturnMode = async (saleId) => {
+    if (!saleId) return;
+
+    try {
+        errorMessage.value = '';
+        const response = await axios.post('/api/sale/items', { sale_id: saleId });
+
+        // Get the sale details
+        const sale = props.sales.find(s => s.id === saleId);
+        returnModeSelectedSale.value = sale;
+        returnModeOrderId.value = saleId;
+
+        // Store the employee info
+        selectedSaleEmployee.value = response.data.employee;
+
+        // Load items into cart as return items with full details
+        const saleItems = response.data.saleItems;
+
+        // Clear existing items
+        returnItems.value = [];
+        products.value = [];
+        returnModeLoadedItems.value = [];
+
+        // Load each item from the original order
+        saleItems.forEach(item => {
+            // Check if item has remaining quantity to return
+            if (item.remaining_quantity > 0) {
+                // Add to returnModeLoadedItems for tracking
+                returnModeLoadedItems.value.push({
+                    ...item,
+                    is_selected_for_return: false,
+                    return_type: 'cash',
+                    return_quantity: item.remaining_quantity,
+                    reason: '',
+                    return_date: new Date().toISOString().split('T')[0],
+                    original_discount: item.discount || 0,
+                    original_unit_price: item.unit_price,
+                    original_quantity: item.original_sale_quantity || item.quantity + (item.returned_quantity || 0),
+                });
+            }
+        });
+
+        // Set customer info from original sale
+        if (sale?.customer) {
+            customer.value = {
+                name: sale.customer.name || '',
+                contactNumber: sale.customer.contactNumber || sale.customer.contact_number || '',
+                email: sale.customer.email || '',
+            };
+        }
+
+        // Set employee from original sale
+        if (sale?.employee_id) {
+            employee_id.value = sale.employee_id;
+        }
+
+        // Load original sale's discounts
+        originalOrderDiscount.value = sale?.discount || 0;
+        originalOrderCustomDiscount.value = sale?.custom_discount || 0;
+        custom_discount.value = 0; // Reset custom discount for new return
+
+    } catch (err) {
+        console.error('Error loading order for return mode:', err);
+        errorMessage.value = 'Failed to load order items. Please try again.';
+    }
+};
+
+// Select item for return in return mode
+const selectItemForReturn = (item) => {
+    // Check if already selected
+    const existing = returnItems.value.find(r => r.sale_item_id === item.id);
+    if (existing) {
+        errorMessage.value = "This item is already selected for return";
+        return;
+    }
+
+    // Mark as selected in loaded items
+    const loadedItem = returnModeLoadedItems.value.find(i => i.id === item.id);
+    if (loadedItem) {
+        loadedItem.is_selected_for_return = true;
+    }
+
+    // Add to return items with all original details
+    returnItems.value.push({
+        id: item.id,
+        sale_item_id: item.id,
+        product_id: item.product_id,
+        product: item.product,
+        unit_price: item.unit_price,
+        original_unit_price: item.unit_price,
+        return_quantity: item.remaining_quantity,
+        remaining_quantity: item.remaining_quantity,
+        return_type: 'cash',
+        reason: '',
+        return_date: new Date().toISOString().split('T')[0],
+        sale_id: returnModeOrderId.value,
+        original_discount: item.discount || 0,
+        original_quantity: item.original_sale_quantity || item.quantity,
+        cost_price: item.cost_price || item.product?.cost_price || 0,
+    });
+};
+
+// Deselect item from return
+const deselectItemFromReturn = (itemId) => {
+    returnItems.value = returnItems.value.filter(r => r.sale_item_id !== itemId);
+    const loadedItem = returnModeLoadedItems.value.find(i => i.id === itemId);
+    if (loadedItem) {
+        loadedItem.is_selected_for_return = false;
+    }
+};
+
+// Add new product for P2P exchange in return mode
+const addP2PProductInReturnMode = (fetchedProduct) => {
+    if (fetchedProduct.stock_quantity < 1) {
+        isAlertModalOpen.value = true;
+        message.value = "Product is out of stock";
+        return;
+    }
+
+    const existingProduct = products.value.find(item => item.id === fetchedProduct.id);
+
+    if (existingProduct) {
+        existingProduct.quantity += 1;
+    } else {
+        products.value.push({
+            ...fetchedProduct,
+            quantity: 1,
+            discount_type: 'percent',
+            apply_discount: false,
+            is_p2p_product: true, // Mark as P2P product
+        });
+    }
+};
+
+// Validate return mode submission
+const validateReturnModeSubmission = () => {
+    if (returnItems.value.length === 0) {
+        return { valid: false, message: "No items selected for return" };
+    }
+
+    // Check if all return items have return type
+    const missingReturnType = returnItems.value.some(item => !item.return_type);
+    if (missingReturnType) {
+        return { valid: false, message: "Please select Return Type (Cash or P2P) for all return items" };
+    }
+
+    // Check if all return items have reason
+    const missingReason = returnItems.value.some(item => !item.reason || !item.reason.trim());
+    if (missingReason) {
+        return { valid: false, message: "Please provide a reason for all return items" };
+    }
+
+    // Check if return quantities are valid
+    const invalidQuantity = returnItems.value.some(item =>
+        !item.return_quantity || item.return_quantity < 1 || item.return_quantity > item.remaining_quantity
+    );
+    if (invalidQuantity) {
+        return { valid: false, message: "Please enter valid return quantities (cannot exceed remaining quantity)" };
+    }
+
+    // For P2P returns, check if new products are added
+    const hasP2PReturns = returnItems.value.some(item => item.return_type === 'p2p');
+    if (hasP2PReturns && products.value.length === 0) {
+        return { valid: false, message: "For P2P returns, please add replacement product(s) using User Manual or barcode scanner" };
+    }
+
+    // Validate stock for new products
+    for (const product of products.value) {
+        if (product.quantity > product.stock_quantity) {
+            return { valid: false, message: `Insufficient stock for ${product.name}. Available: ${product.stock_quantity}` };
+        }
+    }
+
+    return { valid: true };
+};
+
+// Submit return mode order (updates same order)
+const submitReturnModeOrder = async () => {
+    const validation = validateReturnModeSubmission();
+    if (!validation.valid) {
+        isAlertModalOpen.value = true;
+        message.value = validation.message;
+        return;
+    }
+
+    try {
+        // Prepare return items data
+        const returnItemsData = returnItems.value.map(item => ({
+            sale_id: returnModeOrderId.value,
+            sale_item_id: item.sale_item_id,
+            product_id: item.product_id,
+            quantity: item.return_quantity,
+            reason: item.reason,
+            unit_price: item.unit_price,
+            return_date: item.return_date,
+            return_type: item.return_type,
+        }));
+
+        // Prepare new products data for P2P
+        const newProductsData = products.value.map(product => ({
+            product_id: product.id,
+            quantity: product.quantity,
+            selling_price: product.apply_discount ? product.discounted_price : product.selling_price,
+        }));
+
+        // Call the return endpoint
+        const response = await axios.post('/return-bill', {
+            return_items: returnItemsData,
+            new_products: newProductsData.length > 0 ? newProductsData : undefined,
+            update_same_order: true, // Flag to update same order
+        });
+
+        if (response.data.success) {
+            const returnBillData = response.data.return_bill_data;
+            const returnSaleData = response.data.return_sale_data;
+            const cashReturnData = response.data.cash_return_data;
+
+            // Prepare modal data for receipt
+            if (returnSaleData) {
+                actualOrderId.value = returnSaleData.order_id || "";
+                modalCustomer.value = returnSaleData.customer || { name: "", contactNumber: "", email: "" };
+                modalEmployee.value = returnSaleData.employee || { name: "" };
+                modalProducts.value = returnSaleData.items || [];
+                cash.value = returnSaleData.total_amount || 0;
+                selectedPaymentMethod.value = returnSaleData.payment_method || "";
+                returnAmount.value = returnSaleData.return_amount || 0;
+                newProductAmount.value = returnSaleData.new_product_amount || 0;
+                isReturnBillPrinted.value = true;
+                isSuccessModalOpen.value = true;
+            } else if (cashReturnData) {
+                actualOrderId.value = cashReturnData.order_id || "";
+                modalCustomer.value = cashReturnData.customer || { name: "", contactNumber: "", email: "" };
+                modalEmployee.value = cashReturnData.employee || { name: "" };
+                modalProducts.value = cashReturnData.return_items || [];
+                cash.value = cashReturnData.total_amount || 0;
+                selectedPaymentMethod.value = cashReturnData.payment_method || "Cash Return";
+                isReturnBillPrinted.value = true;
+                isSuccessModalOpen.value = true;
+            } else {
+                isAlertModalOpen.value = true;
+                message.value = `Return processed successfully!\n\nReturn Amount: ${returnBillData.totals.return_amount.toFixed(2)} LKR`;
+            }
+
+            // Exit return mode and refresh
+            exitReturnMode();
+        }
+    } catch (err) {
+        console.error('Error processing return:', err);
+        isAlertModalOpen.value = true;
+        message.value = err.response?.data?.error || err.response?.data?.message || "Failed to process return. Please try again.";
+    }
+};
+
+// ============ END RETURN MODE FUNCTIONS ============
 
 const incrementReturnItemQuantity = (item) => {
     if (item.return_quantity < item.remaining_quantity) {
@@ -1222,6 +1791,39 @@ const returnBillTotal = computed(() => {
         return sum + (returnQty * unitPrice);
     }, 0);
 });
+
+// Custom discount value calculation for display
+const customDiscountValue = computed(() => {
+    const newProductTotal = parseFloat(subtotal.value) || 0;
+    const returnTotal = parseFloat(returnBillTotal.value) || 0;
+    const customDiscount = parseFloat(custom_discount.value) || 0;
+
+    if (custom_discount_type.value === 'percent') {
+        // In return mode with no new products, apply discount to return amount
+        if (isReturnMode.value && newProductTotal === 0 && returnTotal > 0) {
+            return (returnTotal * customDiscount) / 100;
+        }
+        // Apply percentage to the absolute value of (new products - return amount)
+        const baseAmount = Math.abs(newProductTotal - returnTotal);
+        return (baseAmount * customDiscount) / 100;
+    } else if (custom_discount_type.value === 'fixed') {
+        return customDiscount;
+    }
+    return 0;
+});
+
+// Net return amount calculation (New Products - Return Amount + Custom Discount)
+// In return mode, custom discount reduces the refund amount
+const netReturnAmount = computed(() => {
+    const newProductTotal = parseFloat(subtotal.value) || 0;
+    const returnTotal = parseFloat(returnBillTotal.value) || 0;
+    const discounts = parseFloat(totalDiscount.value) || 0;
+
+    // In return mode, the discount reduces the refund (added back)
+    // Positive = customer owes money, Negative = refund to customer
+    return (newProductTotal - discounts + customDiscountValue.value) - returnTotal;
+});
+
 // };
 // In your script setup
 // Initialize as empty array
@@ -1353,12 +1955,26 @@ const total = computed(() => {
     let customValue = 0;
 
     if (custom_discount_type.value === 'percent') {
-        customValue = (subtotalValue * customDiscount) / 100;
+        // In return mode with no new products, apply discount to return amount
+        if (isReturnMode.value && subtotalValue === 0 && returnAmount > 0) {
+            customValue = (returnAmount * customDiscount) / 100;
+        } else {
+            // Apply to the base (new products - return amount)
+            const baseForDiscount = subtotalValue - returnAmount;
+            customValue = (Math.abs(baseForDiscount) * customDiscount) / 100;
+        }
     } else if (custom_discount_type.value === 'fixed') {
         customValue = customDiscount;
     }
 
-    let baseTotal = subtotalValue - discountValue - customValue - returnAmount;
+    let baseTotal = subtotalValue - discountValue - returnAmount;
+
+    // Apply custom discount - in return mode it reduces the refund amount
+    if (isReturnMode.value) {
+        baseTotal = baseTotal + customValue; // Add back discount to reduce refund
+    } else {
+        baseTotal = baseTotal - customValue;
+    }
 
     // Add Koko surcharge if Koko payment method is selected
     if (selectedPaymentMethod.value === 'Koko') {
@@ -1581,6 +2197,15 @@ const removeDiscount = (id) => {
 
 const handleSelectedProducts = (selectedProducts) => {
     selectedProducts.forEach((fetchedProduct) => {
+        // In return mode with P2P, check stock
+        if (isReturnMode.value) {
+            if (fetchedProduct.stock_quantity < 1) {
+                isAlertModalOpen.value = true;
+                message.value = `Product "${fetchedProduct.name}" is out of stock`;
+                return;
+            }
+        }
+
         const existingProduct = products.value.find(
             (item) => item.id === fetchedProduct.id
         );
@@ -1593,8 +2218,9 @@ const handleSelectedProducts = (selectedProducts) => {
             products.value.push({
                 ...fetchedProduct,
                 quantity: 1,
-                 discount_type: 'percent',
+                discount_type: 'percent',
                 apply_discount: false, // Default additional attribute
+                is_p2p_product: isReturnMode.value, // Mark as P2P product if in return mode
             });
         }
     });
