@@ -67,18 +67,18 @@
         <p
           @click="
             () => {
-              if (HasRole(['Admin'])) {
+              if (HasRole(['Admin', 'Manager', 'Operator'])) {
                 isCreateModalOpen = true;
               }
             }
           "
           :class="
-            HasRole(['Admin'])
+            HasRole(['Admin', 'Manager', 'Operator'])
               ? 'md:px-12 py-4 px-4 md:text-2xl font-bold tracking-wider text-white uppercase bg-blue-600 rounded-xl'
               : 'md:px-12 py-4 px-4 md:text-2xl font-bold tracking-wider text-white uppercase bg-blue-600 cursor-not-allowed rounded-xl'
           "
           :title="
-            HasRole(['Admin'])
+            HasRole(['Admin', 'Manager', 'Operator'])
               ? ''
               : 'You do not have permission to add more Products'
           "
@@ -288,18 +288,18 @@
 
                 <div class="flex space-x-4">
                   <button
-                    :disabled="!HasRole(['Admin'])"
+                    :disabled="!HasRole(['Admin', 'Manager', 'Operator'])"
                     @click="
                       () => {
-                        if (HasRole(['Admin'])) {
+                        if (HasRole(['Admin', 'Manager', 'Operator'])) {
                           openDuplicateModal(product);
                         }
                       }
                     "
                     :class="{
-                      'cursor-not-allowed opacity-50': !HasRole(['Admin']),
+                      'cursor-not-allowed opacity-50': !HasRole(['Admin', 'Manager', 'Operator']),
                       'cursor-pointer hover:bg-green-600 hover:text-white':
-                        HasRole(['Admin']),
+                        HasRole(['Admin', 'Manager', 'Operator']),
                     }"
                     class="flex items-center justify-center w-10 h-10 text-gray-800 transition duration-200 bg-gray-100 rounded-full"
                   >

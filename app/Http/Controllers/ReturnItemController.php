@@ -37,6 +37,10 @@ class ReturnItemController extends Controller
 
     public function fetchSaleItems(Request $request)
     {
+        if (!Gate::allows('hasRole', ['Admin', 'Manager', 'Cashier', 'Operator'])) {
+            abort(403, 'Unauthorized');
+        }
+
         $request->validate([
             'sale_id' => 'required|exists:sales,id',
         ]);
@@ -74,7 +78,7 @@ class ReturnItemController extends Controller
      */
     public function store(Request $request)
     {
-        if (!Gate::allows('hasRole', ['Admin', 'Manager', 'Cashier'])) {
+        if (!Gate::allows('hasRole', ['Admin', 'Manager', 'Cashier', 'Operator'])) {
             abort(403, 'Unauthorized');
         }
 

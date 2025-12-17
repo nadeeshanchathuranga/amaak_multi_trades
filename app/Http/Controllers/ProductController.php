@@ -34,6 +34,10 @@ class ProductController extends Controller
 
     public function fetchProducts(Request $request)
 {
+    if (!Gate::allows('hasRole', ['Admin', 'Manager', 'Operator'])) {
+        abort(403, 'Unauthorized');
+    }
+
     $rawQuery         = trim((string) $request->input('search', ''));
     $sortOrder        = $request->input('sort');
     $selectedColor    = $request->input('color');
@@ -82,6 +86,10 @@ class ProductController extends Controller
      */
    public function index(Request $request)
 {
+    if (!Gate::allows('hasRole', ['Admin', 'Manager', 'Operator'])) {
+        abort(403, 'Unauthorized');
+    }
+
     $query = $request->input('search');
     $sortOrder = $request->input('sort');
     $selectedColor = $request->input('color');
@@ -185,7 +193,7 @@ class ProductController extends Controller
     {
 
  
-        if (!Gate::allows('hasRole', ['Admin'])) {
+        if (!Gate::allows('hasRole', ['Admin', 'Manager', 'Operator'])) {
             abort(403, 'Unauthorized');
         }
 
@@ -270,7 +278,7 @@ class ProductController extends Controller
     public function productVariantStore(Request $request)
     {
 
-        if (!Gate::allows('hasRole', ['Admin'])) {
+        if (!Gate::allows('hasRole', ['Admin', 'Manager', 'Operator'])) {
             abort(403, 'Unauthorized');
         }
 
@@ -350,7 +358,7 @@ class ProductController extends Controller
      */
     public function show(Product $product)
     {
-        if (!Gate::allows('hasRole', ['Admin'])) {
+        if (!Gate::allows('hasRole', ['Admin', 'Manager', 'Operator'])) {
             abort(403, 'Unauthorized');
         }
         // $categories = Category::all();
@@ -379,6 +387,10 @@ class ProductController extends Controller
      */
     public function edit(Product $product)
     {
+        if (!Gate::allows('hasRole', ['Admin', 'Manager'])) {
+            abort(403, 'Unauthorized');
+        }
+
         $categories = Category::orderBy('created_at', 'desc')->get();
         $colors = Color::orderBy('created_at', 'desc')->get();
         $sizes = Size::orderBy('created_at', 'desc')->get();
@@ -401,7 +413,7 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product)
     {
-        if (!Gate::allows('hasRole', ['Admin'])) {
+        if (!Gate::allows('hasRole', ['Admin', 'Manager'])) {
             abort(403, 'Unauthorized');
         }
 
@@ -504,7 +516,7 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
-        if (!Gate::allows('hasRole', ['Admin'])) {
+        if (!Gate::allows('hasRole', ['Admin', 'Manager'])) {
             abort(403, 'Unauthorized');
         }
 

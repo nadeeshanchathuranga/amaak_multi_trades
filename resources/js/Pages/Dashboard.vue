@@ -7,7 +7,7 @@
     <Header />
 
     <div class="grid w-full h-full md:grid-cols-4 grid-cols-1 gap-8 auto-rows-fr">
-      <Link href="/pos" v-if="HasRole(['Admin', 'Cashier'])">
+      <Link href="/pos" v-if="HasRole(['Admin', 'Cashier', 'Operator'])">
         <div class="dashboard-card bg-[#4d7c0f]">
           <div class="card-content">
             <div class="icon-container">
@@ -52,7 +52,7 @@
         </div>
       </Link>
 
-      <Link href="/products" v-if="HasRole(['Admin', 'Manager'])">
+      <Link href="/products" v-if="HasRole(['Admin', 'Manager', 'Operator'])">
         <div class="dashboard-card bg-[#C62E2E]">
           <div class="card-content">
             <div class="icon-container">
@@ -348,7 +348,7 @@
         </div>
       </Link>
 
-      <Link href="/manualpos" v-if="HasRole(['Admin', 'Cashier'])">
+      <Link href="/manualpos" v-if="HasRole(['Admin', 'Cashier', 'Operator'])">
         <div class="dashboard-card bg-[#009990]">
           <div class="card-content">
             <div class="icon-container">
@@ -417,7 +417,7 @@
         </div>
       </Link>
 
-      <Link href="/creditbill" v-if="HasRole(['Admin'])">
+      <Link href="/creditbill" v-if="HasRole(['Admin', 'Operator'])">
         <div class="dashboard-card bg-[#BB8ED0]">
           <div class="card-content">
             <div class="icon-container">
@@ -436,7 +436,7 @@
         </div>
       </Link>
 
-      <Link href="/quotation" v-if="HasRole(['Admin'])">
+      <Link href="/quotation" v-if="HasRole(['Admin', 'Operator'])">
         <div class="dashboard-card bg-[#216b85]">
           <div class="card-content">
             <div class="icon-container">

@@ -35,7 +35,7 @@ class UserController extends Controller
         $data = $request->validate([
             'name'      => ['required','string','max:255'],
             'email'     => ['required','email','max:255','unique:users,email'],
-            'role_type' => ['required', Rule::in(['Admin','Cashier','Manager'])],
+            'role_type' => ['required', Rule::in(['Admin','Cashier','Manager','Operator'])],
             'password'  => ['required','string','min:8'], // if you want auto-gen, you can make this nullable and set default
         ]);
 
@@ -52,7 +52,7 @@ class UserController extends Controller
         $data = $request->validate([
             'name'      => ['required','string','max:255'],
             'email'     => ['required','email','max:255', Rule::unique('users','email')->ignore($user->id)],
-            'role_type' => ['required', Rule::in(['Admin','Cashier','Manager'])],
+            'role_type' => ['required', Rule::in(['Admin','Cashier','Manager','Operator'])],
             'password'  => ['nullable','string','min:8'], // optional on update
         ]);
 
