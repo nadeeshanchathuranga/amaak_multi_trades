@@ -329,10 +329,10 @@ const printReceipt = (history) => {
       <div class="section">
         <div class="info-row">
           <div>
-            <p>Date:</p>
-            <small>${new Date(history.created_at).toLocaleDateString()}</small>
+            <p>Date & Time:</p>
+            <small>${new Date(history.created_at).toLocaleDateString()} ${new Date(history.created_at).toLocaleTimeString()}</small>
           </div>
-          <div style="text-align: right;">
+          <div>
             <p>Order No:</p>
             <small>${history.order_id}</small>
           </div>
@@ -340,26 +340,22 @@ const printReceipt = (history) => {
         <div class="info-row">
           <div>
             <p>Customer:</p>
-            <small>${history.customer?.name || 'walk-in customer'}</small>
+            <small>${history.customer?.name || 'Walk-in Customer'}</small>
           </div>
           <div style="text-align: right;">
             <p>Cashier:</p>
-            <small>${history.user?.name || ''}</small>
+            <small>${history.user?.name || 'admin'}</small>
           </div>
         </div>
-         <div class="info-row">
-           <div>
-             <p>Employee:</p>
-             <small>${props.employee?.name || 'No Employee Selected'}</small>
-           </div>
-           <div></div>
-         </div>
         <div class="info-row">
           <div>
+            <p>Employee:</p>
+            <small>${history.employee?.name || 'No Employee Selected'}</small>
+          </div>
+          <div style="text-align: right;">
             <p>Payment Method:</p>
             <small>${history.payment_method || 'Cash'}</small>
           </div>
-          <div></div>
         </div>
       </div>
 
@@ -377,21 +373,9 @@ const printReceipt = (history) => {
             ${saleItems.map(item => {
               const originalPrice = Number(item.unit_price || item.selling_price || 0);
               const hasDiscount = Number(item.discount || 0) > 0;
-              let discountedPrice = originalPrice;
-
-              if (hasDiscount) {
-                if (item.discounted_price != null) {
-                  discountedPrice = Number(item.discounted_price);
-                } else if (item.discount_type === "percent") {
-                  discountedPrice = originalPrice * (1 - Number(item.discount) / 100);
-                } else {
-                  discountedPrice = originalPrice - Number(item.discount);
-                }
-                if (discountedPrice < 0) discountedPrice = 0;
-              }
-
               const unitName = item.unit?.name || item.product?.unit?.name || '';
               const itemName = item.name || item.product?.name || "Item";
+              const itemTotal = originalPrice * item.quantity;
 
               return `
                 <tr style="border-bottom: 1px dashed #000;">
@@ -401,8 +385,8 @@ const printReceipt = (history) => {
                       ${(item.discount_type === 'percent' || item.discount_type === 'percentage' || item.discount_type === '%') ? Number(item.discount).toFixed(2) + '% off' : Number(item.discount).toFixed(2) + ' LKR off'}
                     </small>` : ''}
                   </td>
-                  <td style="text-align: center; padding: 8px 4px;">${item.quantity}${unitName ? ' ' + unitName : ''} × ${originalPrice.toFixed(2)}</td>
-                  <td style="text-align: right; padding: 8px 4px;">${(originalPrice * item.quantity).toFixed(2)}</td>
+                  <td style="text-align: center; padding: 8px 4px;">${Math.abs(item.quantity)}${unitName ? ' ' + unitName : ''} × ${originalPrice.toFixed(2)}</td>
+                  <td style="text-align: right; padding: 8px 4px;">${itemTotal.toFixed(2)}</td>
                 </tr>
               `;
             }).join('')}
@@ -422,19 +406,11 @@ const printReceipt = (history) => {
         </div>
         <div>
           <span>Custom Discount</span>
-          <span>${(Number(history.custom_discount) || 0).toFixed(2)} ${history.custom_discount > 0 ? 'LKR' : '%'}</span>
+          <span>${(Number(history.custom_discount) || 0).toFixed(2)} %</span>
         </div>
         <div class="total-line">
           <span>Total</span>
           <span>${(Number(history.total_amount) || 0).toFixed(2)} LKR</span>
-        </div>
-        <div>
-          <span>Cash</span>
-          <span>${(Number(history.cash) || 0).toFixed(2)} LKR</span>
-        </div>
-        <div style="font-weight: bold;">
-          <span>Balance</span>
-          <span>${(Number(history.cash) - (Number(history.total_amount) || 0)).toFixed(2)} LKR</span>
         </div>
       </div>
 
@@ -443,7 +419,6 @@ const printReceipt = (history) => {
         <p>THANK YOU COME AGAIN</p>
         <p class="italic">Let the quality define its own standards</p>
         <p style="font-weight: bold;">Powered by JAAN Network Ltd.</p>
-        <p>${new Date(history.created_at).toLocaleTimeString()}</p>
       </div>
     </div>
   </body>

@@ -339,7 +339,7 @@ $todaySalesCount = count($todaySales);
     // =========================
     // 9. Return Items Analysis
     // =========================
-    $returnItemsQuery = ReturnItem::query();
+    $returnItemsQuery = ReturnItem::with(['product', 'sale']);
     
     if ($startDate && $endDate) {
         $returnItemsQuery->whereBetween('return_date', [$startDate, $endDate]);

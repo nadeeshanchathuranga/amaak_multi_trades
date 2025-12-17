@@ -980,27 +980,29 @@
       <thead>
         <tr class="bg-gradient-to-r from-blue-700 via-blue-600 to-blue-700 text-white text-[14px] border-b border-blue-800">
           <th class="p-3 text-left font-semibold">#</th>
+          <th class="p-3 text-center font-semibold">Order ID</th>
           <th class="p-3 text-center font-semibold">Product Name</th>
-          <th class="p-3 text-center font-semibold">Transaction Date</th>
+          <th class="p-3 text-center font-semibold">Return Date</th>
           <th class="p-3 text-center font-semibold">Quantity</th>
-          <th class="p-3 text-center font-semibold">Selling Price</th>
-          <th class="p-3 text-center font-semibold">Total Selling Price</th> 
+          <th class="p-3 text-center font-semibold">Unit Price</th>
+          <th class="p-3 text-center font-semibold">Total Price</th> 
         </tr>
       </thead>
 
       <tbody class="text-[12px] font-medium">
         <tr
-          v-for="(stock, index) in stockTransactionsReturn"
+          v-for="(item, index) in returnItems"
           :key="index"
           class="border-b transition duration-200 hover:bg-gray-100"
         >
           <td class="p-3 text-center">{{ index + 1 }}</td>
-          <td class="p-3 text-center">{{ stock.product?.name }}</td>
-          <td class="p-3 text-center">{{ stock.transaction_date }}</td>
-          <td class="p-3 text-center">{{ stock.quantity}}</td>
-          <td class="p-3 text-center">{{ stock.product?.selling_price}}</td>
+          <td class="p-3 text-center">{{ item.sale?.order_id || 'N/A' }}</td>
+          <td class="p-3 text-center">{{ item.product?.name }}</td>
+          <td class="p-3 text-center">{{ item.return_date }}</td>
+          <td class="p-3 text-center">{{ item.quantity }}</td>
+          <td class="p-3 text-center">{{ item.unit_price }}</td>
           <td class="p-3 text-center">
-            {{ (stock.quantity * stock.product?.selling_price).toLocaleString() }}
+            {{ Number(item.total_price).toLocaleString() }}
           </td>
         </tr>
       </tbody>
@@ -1422,28 +1424,30 @@ const downloadPDFTableReturn = () => {
   // Prepare table headers
   const tableColumn = [
     "#",
+    "Order ID",
     "Product Name",
-    "Transaction Date",
+    "Return Date",
     "Quantity",
-    "Selling Price",
-    
+    "Unit Price",
+    "Total Price",
   ];
 
   // Prepare table data
-  const tableRows = stockTransactionsReturn.value.map((stock, index) => [
+  const tableRows = returnItems.value.map((item, index) => [
     index + 1,
-    stock.product?.name||"N/A",
-    stock.transaction_date || "N/A",
-    stock.quantity||0,
-    Number(stock.product?.selling_price)|| 0,
-    
+    item.sale?.order_id || "N/A",
+    item.product?.name || "N/A",
+    item.return_date || "N/A",
+    item.quantity || 0,
+    Number(item.unit_price) || 0,
+    Number(item.total_price) || 0,
   ]);
 
   // Calculate total sum of "Total Price"
-  const totalSum = tableRows.reduce((sum, row) => sum + row[4], 0);
+  const totalSum = tableRows.reduce((sum, row) => sum + row[6], 0);
 
   // Add a total row at the end
-  tableRows.push(["", "Total", "", "", totalSum.toFixed(2)]);
+  tableRows.push(["", "", "Total", "", "", "", totalSum.toFixed(2)]);
 
   // Adjust column widths
   doc.autoTable({
@@ -1451,15 +1455,16 @@ const downloadPDFTableReturn = () => {
     body: tableRows,
     startY: 25, // Adjust start position to prevent overlap with title
     theme: "striped",
-    styles: { fontSize: 10 },
+    styles: { fontSize: 9 },
     headStyles: { fillColor: [44, 62, 80] },
     columnStyles: {
-      0: { cellWidth: 20 },  // #
-      1: { cellWidth: 30 },  // Name (Increased for better visibility)
-      4: { cellWidth: 25 },  // Cost Price
-      5: { cellWidth: 25},  // Selling Price
-      6: { cellWidth: 20 },  // Profit
-     
+      0: { cellWidth: 10 },  // #
+      1: { cellWidth: 35 },  // Order ID
+      2: { cellWidth: 40 },  // Product Name
+      3: { cellWidth: 25 },  // Return Date
+      4: { cellWidth: 20 },  // Quantity
+      5: { cellWidth: 25 },  // Unit Price
+      6: { cellWidth: 25 },  // Total Price
     },
     margin: { left: 5, right: 10, top: 20 },
   });
@@ -1547,28 +1552,31 @@ const downloadPaintOrdersPDF = () => {
 
 
 const downloadPDFTableReturnTable = () => {
-  // Map the products data with calculations
-  const stockTransactionData = stockTransactionsReturn.value.map((stock, index) => ({
+  // Map the return items data with calculations
+  const returnItemsData = returnItems.value.map((item, index) => ({
     "#": index + 1,
-    "Name":  stock.product?.name|| "N/A",
-    "Transaction Date": stock.transaction_date || "N/A",
-    "Quantity":stock.quantity||0,
-    "Selling Price":stock.product?.selling_price|| 0,
+    "Order ID": item.sale?.order_id || "N/A",
+    "Product Name": item.product?.name || "N/A",
+    "Return Date": item.return_date || "N/A",
+    "Quantity": item.quantity || 0,
+    "Unit Price": Number(item.unit_price) || 0,
+    "Total Price": Number(item.total_price) || 0,
   }));
 
   // Calculate the sum of total prices
-  const totalSum = stockTransactionData.reduce((sum, product) => sum + product["Selling Price"], 0);
+  const totalSum = returnItemsData.reduce((sum, item) => sum + item["Total Price"], 0);
 
   // Add a total row
   const dataWithTotal = [
-    ...stockTransactionData,
+    ...returnItemsData,
     {
       "#": "",
-      "Name": "Total",
-      "Transaction Date": "",
-      "Quantity":"",
-      "Selling Price":"",
-    
+      "Order ID": "",
+      "Product Name": "Total",
+      "Return Date": "",
+      "Quantity": "",
+      "Unit Price": "",
+      "Total Price": totalSum.toFixed(2),
     }
   ];
 
@@ -1582,18 +1590,18 @@ const downloadPDFTableReturnTable = () => {
   // Set column widths
   const colWidths = [
     { wch: 5 },  // #
-    { wch: 30 }, // Name
-    { wch: 20 }, // Transaction Date
+    { wch: 25 }, // Order ID
+    { wch: 30 }, // Product Name
+    { wch: 20 }, // Return Date
     { wch: 10 }, // Quantity
-    { wch: 25 }, // Cost Price
-   
-   
+    { wch: 15 }, // Unit Price
+    { wch: 15 }, // Total Price
   ];
   ws['!cols'] = colWidths;
 
   // Create a new workbook and append the worksheet
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Stock Data");
+  XLSX.utils.book_append_sheet(wb, ws, "Return Items");
 
   // Generate Excel file and trigger download
   const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
@@ -1601,7 +1609,7 @@ const downloadPDFTableReturnTable = () => {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   });
 
-  saveAs(blob, "Return table.xlsx");
+  saveAs(blob, "Return_Items.xlsx");
 };
 
 const downloadPDFTable1 = () => {
