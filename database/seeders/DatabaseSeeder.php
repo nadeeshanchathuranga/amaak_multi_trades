@@ -48,8 +48,7 @@ class DatabaseSeeder extends Seeder
 
         // Run other seeders
         $this->call([
-            // CategorySeeder::class,
-            // ProductSeeder::class,
+          
             //ColoranceStockSeeder::class,
             // ColorSeeder::class,
             // SizeSeeder::class,

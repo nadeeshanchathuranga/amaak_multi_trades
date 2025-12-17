@@ -111,13 +111,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('coupons', CouponController::class);
     Route::resource('sizes', SizeController::class);
     Route::resource('employees', EmployeeController::class);
-    Route::resource('users', UserController::class); 
-    
+    Route::resource('users', UserController::class);
+
     // Employee Commission Routes
     Route::get('/cashier-commission', [EmployeeCommissionController::class, 'index'])->name('cashier-commission.index');
     Route::get('/cashier-commission/{employee}', [EmployeeCommissionController::class, 'show'])->name('cashier-commission.show');
     Route::get('/my-commission', [EmployeeCommissionController::class, 'mySummary'])->name('my-commission');
-    
+
     Route::resource('transactionHistory', TransactionHistoryController::class);
     Route::post('/transactions/delete', [TransactionHistoryController::class, 'destroy'])->name('transactions.delete');
     Route::resource('stock-transition', StockTransactionController::class);
@@ -144,6 +144,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::resource('return-bill', ReturnItemController::class);
 
+    // Dedicated Returns Page Routes
+    Route::get('/returns', [ReturnItemController::class, 'returnsPage'])->name('returns.index');
+    Route::post('/returns/process', [ReturnItemController::class, 'processCashReturn'])->name('returns.process');
+
 
 
 
@@ -157,11 +161,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/paints/types', [PaintProductController::class, 'store'])->name('paints.types.store');
     Route::put('/paints/types/{paintProduct}', [PaintProductController::class, 'update'])->name('paints.types.update');
     Route::delete('/paints/types/{paintProduct}', [PaintProductController::class, 'destroy'])->name('paints.types.destroy');
-    
+
     Route::post('/paints/color-cards', [ColorCardController::class, 'store'])->name('paints.color-cards.store');
     Route::put('/paints/color-cards/{colorCard}', [ColorCardController::class, 'update'])->name('paints.color-cards.update');
     Route::delete('/paints/color-cards/{colorCard}', [ColorCardController::class, 'destroy'])->name('paints.color-cards.destroy');
-    
+
     Route::post('/paints/base-types', [BaseTypeController::class, 'store'])->name('paints.base-types.store');
     Route::put('/paints/base-types/{baseType}', [BaseTypeController::class, 'update'])->name('paints.base-types.update');
     Route::delete('/paints/base-types/{baseType}', [BaseTypeController::class, 'destroy'])->name('paints.base-types.destroy');

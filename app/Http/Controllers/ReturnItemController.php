@@ -13,6 +13,7 @@ use App\Models\P2PReturnTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class ReturnItemController extends Controller
@@ -35,6 +36,200 @@ class ReturnItemController extends Controller
         ]);
     }
 
+    /**
+     * Display the dedicated returns page.
+     */
+    public function returnsPage()
+    {
+        if (!Gate::allows('hasRole', ['Admin', 'Manager', 'Cashier'])) {
+            abort(403, 'Unauthorized');
+        }
+
+        $sales = Sale::with('customer', 'employee')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return Inertia::render('Returns/Index', [
+            'sales' => $sales,
+            'loggedInUser' => Auth::user(),
+        ]);
+    }
+
+    /**
+     * Process a cash return - updates the same original bill.
+     */
+    public function processCashReturn(Request $request)
+    {
+        if (!Gate::allows('hasRole', ['Admin', 'Manager', 'Cashier'])) {
+            abort(403, 'Unauthorized');
+        }
+
+        $validated = $request->validate([
+            'return_items' => 'required|array|min:1',
+            'return_items.*.sale_id' => 'required|exists:sales,id',
+            'return_items.*.sale_item_id' => 'required|exists:sale_items,id',
+            'return_items.*.product_id' => 'required|exists:products,id',
+            'return_items.*.quantity' => 'required|integer|min:1',
+            'return_items.*.reason' => 'required|string',
+            'return_items.*.unit_price' => 'required|numeric|min:0',
+            'return_items.*.return_date' => 'required|date',
+            'custom_discount' => 'nullable|numeric|min:0',
+            'custom_discount_type' => 'nullable|in:percent,fixed',
+            'cash_return_amount' => 'nullable|numeric|min:0',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $originalSale = null;
+            $totalReturnAmount = 0;
+            $returnedItems = [];
+
+            // Process each return item
+            foreach ($validated['return_items'] as $item) {
+                $sale = Sale::find($item['sale_id']);
+                $originalSale = $sale;
+                $saleItem = SaleItem::find($item['sale_item_id']);
+
+                if (!$saleItem) {
+                    throw new \Exception("Sale item not found with ID {$item['sale_item_id']}");
+                }
+
+                // Calculate remaining quantity available for return
+                $alreadyReturned = ReturnItem::where('sale_item_id', $item['sale_item_id'])
+                    ->sum('quantity');
+                $remainingQty = $saleItem->quantity;
+
+                if ($item['quantity'] > $remainingQty) {
+                    throw new \Exception("Cannot return {$item['quantity']} units. Only {$remainingQty} units available for return.");
+                }
+
+                // Calculate return amount using the unit price from sale item
+                $returnAmount = $item['quantity'] * $saleItem->unit_price;
+                $totalReturnAmount += $returnAmount;
+
+                // Get product for stock update
+                $returnedProduct = Product::find($item['product_id']);
+
+                // Use the cost_price from the original sale item
+                $originalCostPrice = $saleItem->cost_price > 0 ? $saleItem->cost_price : $returnedProduct->cost_price;
+
+                // Calculate proportional discount for returned quantity
+                $currentQty = $saleItem->quantity;
+                $perUnitDiscount = $currentQty > 0 ? ($saleItem->discount / $currentQty) : 0;
+                $proportionalDiscount = $perUnitDiscount * $item['quantity'];
+
+                // Create NEGATIVE quantity sale item to reverse the original sale
+                SaleItem::create([
+                    'sale_id' => $sale->id,
+                    'product_id' => $item['product_id'],
+                    'quantity' => -$item['quantity'], // NEGATIVE quantity
+                    'unit_price' => $saleItem->unit_price,
+                    'cost_price' => $originalCostPrice,
+                    'total_price' => -$returnAmount, // NEGATIVE amount
+                    'discount' => -$proportionalDiscount, // NEGATIVE discount being reversed
+                ]);
+
+                // Update sale totals
+                $sale->total_amount -= $returnAmount;
+                $sale->total_cost -= ($item['quantity'] * $originalCostPrice);
+                $sale->discount -= $proportionalDiscount;
+                $sale->save();
+
+                // Increase stock for returned product
+                $returnedProduct->update([
+                    'stock_quantity' => $returnedProduct->stock_quantity + $item['quantity']
+                ]);
+
+                // Create stock transaction
+                StockTransaction::create([
+                    'product_id' => $item['product_id'],
+                    'transaction_type' => 'Returned',
+                    'quantity' => $item['quantity'],
+                    'transaction_date' => $item['return_date'],
+                    'supplier_id' => $returnedProduct->supplier_id ?? null,
+                ]);
+
+                // Adjust employee commissions if applicable
+                if ($sale->employee_id) {
+                    $this->adjustEmployeeCommissions($sale, $saleItem, $item, $returnedProduct);
+                }
+
+                // Create return item record
+                ReturnItem::create([
+                    'sale_id' => $item['sale_id'],
+                    'sale_item_id' => $item['sale_item_id'],
+                    'customer_id' => $sale->customer_id,
+                    'product_id' => $item['product_id'],
+                    'quantity' => $item['quantity'],
+                    'reason' => $item['reason'],
+                    'unit_price' => $saleItem->unit_price,
+                    'total_price' => $returnAmount,
+                    'discount' => 0,
+                    'return_date' => $item['return_date'],
+                    'return_type' => 'cash',
+                    'employee_id' => $sale->employee_id,
+                    'original_quantity' => $saleItem->quantity,
+                ]);
+
+                // Track returned items for response
+                $returnedItems[] = [
+                    'product_id' => $item['product_id'],
+                    'product_name' => $returnedProduct->name,
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $saleItem->unit_price,
+                    'total' => $returnAmount,
+                    'reason' => $item['reason'],
+                ];
+
+                // Update the original sale item quantity (reduce it)
+                $saleItem->quantity -= $item['quantity'];
+                $saleItem->total_price -= $returnAmount;
+                $saleItem->discount -= $proportionalDiscount;
+                $saleItem->save();
+            }
+
+            // Apply custom discount if provided
+            $discountAmount = 0;
+            if (isset($validated['custom_discount']) && $validated['custom_discount'] > 0) {
+                if ($validated['custom_discount_type'] === 'percent') {
+                    $discountAmount = ($totalReturnAmount * $validated['custom_discount']) / 100;
+                } else {
+                    $discountAmount = $validated['custom_discount'];
+                }
+            }
+
+            $finalRefundAmount = $totalReturnAmount - $discountAmount;
+            $cashReturned = $validated['cash_return_amount'] ?? $finalRefundAmount;
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Return processed successfully!',
+                'data' => [
+                    'original_sale_id' => $originalSale->id,
+                    'original_order_id' => $originalSale->order_id,
+                    'return_items' => $returnedItems,
+                    'return_total' => $totalReturnAmount,
+                    'discount_applied' => $discountAmount,
+                    'final_refund' => $finalRefundAmount,
+                    'cash_returned' => $cashReturned,
+                    'updated_sale_total' => $originalSale->total_amount,
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while processing the return.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function fetchSaleItems(Request $request)
     {
         $request->validate([
@@ -42,7 +237,7 @@ class ReturnItemController extends Controller
         ]);
 
         $sale = Sale::with('employee')->find($request->input('sale_id'));
-        
+
         $saleItems = SaleItem::with('product')
             ->where('sale_id', $request->input('sale_id'))
             ->get()
@@ -50,15 +245,15 @@ class ReturnItemController extends Controller
                 // Calculate already returned quantity using sale_item_id
                 $returnedQty = ReturnItem::where('sale_item_id', $item->id)
                     ->sum('quantity');
-                
+
                 // Note: sale_items.quantity gets reduced after each return
                 // So original_quantity = current_quantity + already_returned
                 $originalQuantity = $item->quantity + $returnedQty;
-                
+
                 $item->returned_quantity = $returnedQty;
                 $item->remaining_quantity = $item->quantity; // Current quantity IS the remaining quantity
                 $item->original_sale_quantity = $originalQuantity;
-                
+
                 return $item;
             });
 
@@ -101,7 +296,7 @@ class ReturnItemController extends Controller
             $originalSale = null;
             $returnSale = null;
             $hasP2P = false;
-            
+
             $returnBillData = [
                 'return_items' => [],
                 'new_products' => [],
@@ -150,23 +345,23 @@ class ReturnItemController extends Controller
 
                 // Get product for stock update
                 $returnedProduct = Product::find($item['product_id']);
-                
+
                 // Use the cost_price from the original sale item (if available) or product's current cost
                 $originalCostPrice = $saleItem->cost_price > 0 ? $saleItem->cost_price : $returnedProduct->cost_price;
-                
+
                 // Calculate proportional discount for returned quantity
                 // Use current quantity (before this return) to calculate per-unit discount
                 $currentQty = $saleItem->quantity;
                 $perUnitDiscount = $currentQty > 0 ? ($saleItem->discount / $currentQty) : 0;
                 $proportionalDiscount = $perUnitDiscount * $item['quantity'];
-                
+
                 // Calculate the original selling price (before discount) for this item
                 // unit_price is already discounted, so: original_price = unit_price + per_unit_discount
                 $originalSellingPrice = $saleItem->unit_price + $perUnitDiscount;
-                
+
                 // The return amount based on original selling price (before discount)
                 $grossReturnAmount = $item['quantity'] * $originalSellingPrice;
-                
+
                 // Create NEGATIVE quantity sale item to reverse the original sale
                 // Store the discounted unit_price for consistency
                 SaleItem::create([
@@ -178,7 +373,7 @@ class ReturnItemController extends Controller
                     'total_price' => -$returnAmount, // NEGATIVE amount (discounted)
                     'discount' => -$proportionalDiscount, // NEGATIVE discount being reversed
                 ]);
-                
+
                 // Update sale totals to reflect the negative line
                 // total_amount is already net of discount, so we subtract the discounted return amount
                 $sale->total_amount -= $returnAmount;
@@ -237,7 +432,7 @@ class ReturnItemController extends Controller
             // For P2P returns, create a separate sale/bill with new products
             if ($hasP2P && !empty($validated['new_products'])) {
                 $newProductsTotal = 0;
-                
+
                 // Generate unique order ID for return bill
                 $returnOrderId = 'RTN-' . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 8));
 
@@ -272,7 +467,7 @@ class ReturnItemController extends Controller
                 // Process new products and create sale items
                 foreach ($validated['new_products'] as $newProductData) {
                     $newProduct = Product::find($newProductData['product_id']);
-                    
+
                     // Check stock availability
                     if ($newProduct->stock_quantity < $newProductData['quantity']) {
                         throw new \Exception("Insufficient stock for product: {$newProduct->name}. Available: {$newProduct->stock_quantity}");
@@ -354,11 +549,11 @@ class ReturnItemController extends Controller
                 foreach ($validated['return_items'] as $item) {
                     $returnedProduct = Product::find($item['product_id']);
                     $returnAmount = $item['quantity'] * $item['unit_price'];
-                    
+
                     foreach ($validated['new_products'] as $newProductData) {
                         $newProduct = Product::find($newProductData['product_id']);
                         $newProductTotal = $newProductData['quantity'] * $newProductData['selling_price'];
-                        
+
                         \App\Models\P2PReturnTransaction::create([
                             'original_sale_id' => $originalSale->id,
                             'return_sale_id' => $returnSale->id,
@@ -383,7 +578,7 @@ class ReturnItemController extends Controller
             }
 
             // Calculate net amount
-            $returnBillData['totals']['net_amount'] = 
+            $returnBillData['totals']['net_amount'] =
                 $returnBillData['totals']['new_product_amount'] - $returnBillData['totals']['return_amount'];
 
             DB::commit();
@@ -394,12 +589,12 @@ class ReturnItemController extends Controller
             $returnSaleData = null;
             if ($returnSale) {
                 $returnSale->load(['items.product.unit', 'customer', 'employee']);
-                
+
                 // For P2P returns, the bill should show the net amount (new products - return amount)
-                $netAmount = $hasP2P ? 
+                $netAmount = $hasP2P ?
                     $returnBillData['totals']['new_product_amount'] - $returnBillData['totals']['return_amount'] :
                     $returnSale->total_amount;
-                
+
                 $returnSaleData = [
                     'id' => $returnSale->id,
                     'order_id' => $returnSale->order_id,
@@ -430,7 +625,7 @@ class ReturnItemController extends Controller
             $cashReturnData = null;
             if (!$hasP2P && $originalSale && count($returnBillData['return_items']) > 0) {
                 $originalSale->load(['customer', 'employee']);
-                
+
                 // Format return items for receipt display
                 $formattedReturnItems = collect($returnBillData['return_items'])->map(function($item) {
                     return [
