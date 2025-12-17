@@ -12,24 +12,13 @@
                     <img src="/images/back-arrow.png" class="w-14 h-14" />
                     </Link>
                     <p class="pt-3 text-4xl font-bold tracking-wide text-black uppercase">
-                        PoS {{ isReturnMode ? '- RETURN MODE' : '' }}
+                        PoS
                     </p>
                 </div>
                 <div class="flex items-center justify-between w-full space-x-4">
                     <p class="text-3xl font-bold tracking-wide text-black">
-                        Order ID : #{{ isReturnMode && returnModeOrderId ? returnModeOrderId : orderid  }}
+                        Order ID : #{{ orderid  }}
                     </p>
-                    <button
-                        @click="toggleReturnMode"
-                        :class="[
-                            'px-6 py-2 text-xl font-bold rounded-lg transition-colors',
-                            isReturnMode
-                                ? 'bg-red-600 text-white hover:bg-red-700'
-                                : 'bg-green-600 text-white hover:bg-green-700'
-                        ]"
-                    >
-                        {{ isReturnMode ? 'Exit Return Mode' : 'Return Mode' }}
-                    </button>
                     <p class="text-3xl text-black cursor-pointer">
                         <i @click="refreshData" class="ri-restart-line"></i>
                     </p>
@@ -77,7 +66,10 @@
                         <div class="flex items-center justify-between w-full">
                             <h2 class="md:text-5xl text-4xl font-bold text-black">Billing Details</h2>
 
-
+                            <span class="flex cursor-pointer" @click="openReturnBills">
+                                  <button class="text-xl text-blue-600 font-bold" type="button" >Return Bills</button>
+                                <img src="/images/selectpsoduct.svg" class="w-6 h-6 ml-2" />
+                            </span>
                             <span class="flex cursor-pointer" @click="isSelectModalOpen = true">
                                 <p class="text-xl text-blue-600 font-bold">User Manual</p>
                                 <img src="/images/selectpsoduct.svg" class="w-6 h-6 ml-2" />
@@ -88,36 +80,7 @@
                             <button >Return Bills</button>
                         </div> -->
 
-                        <!-- Return Mode Order ID Input -->
-                        <div v-if="isReturnMode" class="flex items-end justify-between w-full my-5 border-4 border-red-600 rounded-2xl bg-red-50">
-                            <div class="flex items-center justify-center w-3/4">
-                                <label for="returnOrderId" class="text-xl font-medium text-red-800 px-4">Order ID:</label>
-                                <input
-                                    v-model="returnModeOrderId"
-                                    id="returnOrderId"
-                                    list="salesList"
-                                    type="text"
-                                    placeholder="Type or select Order ID"
-                                    @keyup.enter="loadOrderForReturn"
-                                    class="w-full h-16 px-4 text-lg font-bold rounded-l-2xl focus:outline-none focus:ring-2 focus:ring-red-500"
-                                />
-                                <datalist id="salesList">
-                                    <option v-for="sale in sales" :key="sale.id" :value="sale.order_id">
-                                        #{{ sale.order_id }} - {{ sale.customer?.name || 'Walk-in' }} - {{ sale.total_amount }} LKR
-                                    </option>
-                                </datalist>
-                            </div>
-                            <div class="flex items-end justify-end w-1/4">
-                                <button @click="loadOrderForReturn"
-                                    :disabled="!returnModeOrderId"
-                                    class="px-12 py-4 text-2xl font-bold tracking-wider text-white uppercase bg-red-600 rounded-r-xl hover:bg-red-700 disabled:bg-gray-400">
-                                    Load
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Normal Barcode Input -->
-                        <div v-else class="flex items-end justify-between w-full my-5 border-2 border-black rounded-2xl">
+                        <div class="flex items-end justify-between w-full my-5 border-2 border-black rounded-2xl">
                             <div class="flex items-center justify-center w-3/4">
                                 <label for="search" class="text-xl font-medium text-gray-800"></label>
                                 <input v-model="form.barcode" id="search" type="text" placeholder="Enter BarCode Here!"
@@ -221,174 +184,13 @@
                         </div>
 
                         <!-- Regular Products Section -->
-                        <div class="flex items-center w-full py-4 border-b"
-                            :class="isReturnMode && !item.is_p2p_new_product ? 'border-red-500 bg-red-50' : isReturnMode && item.is_p2p_new_product ? 'border-blue-500 bg-blue-50' : 'border-black'"
-                            v-for="item in products" :key="item.id">
+                        <div class="flex items-center w-full py-4 border-b border-black" v-for="item in products"
+                            :key="item.id">
                             <div class="flex w-1/6">
                                 <img :src="item.image ? `/${item.image}` : '/images/placeholder.jpg'
                                     " alt="Supplier Image" class="object-cover w-16 h-16 border border-gray-500" />
                             </div>
                             <div class="flex flex-col justify-between w-5/6">
-
-                          <!-- Return Mode Display (Return Items) -->
-                          <div v-if="isReturnMode && !item.is_p2p_new_product" class="space-y-4">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-xl font-bold" :class="isReturnMode ? 'text-red-600' : 'text-black'">
-                                        {{ isReturnMode ? 'RETURN: ' : '' }}{{ item.name }}
-                                    </p>
-                                    <p class="text-sm text-gray-600">Original Qty: {{ item.original_quantity || item.quantity }}</p>
-                                    <p class="text-lg font-semibold">Price: {{ item.unit_price || item.selling_price }} LKR</p>
-                                </div>
-                                <span v-if="item.return_type"
-                                    :class="[
-                                        'px-3 py-1 text-sm font-bold rounded-lg',
-                                        item.return_type === 'cash'
-                                            ? 'bg-green-100 text-green-800 border-2 border-green-600'
-                                            : 'bg-blue-100 text-blue-800 border-2 border-blue-600'
-                                    ]">
-                                    {{ item.return_type === 'cash' ? '💵 CASH RETURN' : '🔄 P2P RETURN' }}
-                                </span>
-                            </div>
-
-                            <!-- Return Type Selection -->
-                            <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg border-2 border-gray-300">
-                                <label class="text-lg font-semibold text-gray-700">Return Type:<span class="text-red-500">*</span></label>
-                                <select v-model="item.return_type" required
-                                    class="px-4 py-2 border-2 border-gray-400 rounded-lg text-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                                    <option value="" disabled>Select Return Type</option>
-                                    <option value="cash">💵 Cash Return</option>
-                                    <option value="p2p">🔄 Product-to-Product (P2P)</option>
-                                </select>
-                            </div>
-
-                            <!-- Quantity Controls -->
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-4">
-                                    <span class="text-sm text-gray-600">Return Qty:</span>
-                                    <div class="flex space-x-2">
-                                        <p @click="decrementQuantity(item.id)"
-                                            class="flex items-center justify-center w-8 h-8 text-white bg-red-600 rounded cursor-pointer">
-                                            <i class="ri-subtract-line"></i>
-                                        </p>
-                                        <input type="number" v-model.number="item.quantity" min="1"
-                                            :max="item.original_quantity || item.quantity"
-                                            class="w-16 px-2 text-center border-2 border-black rounded" />
-                                        <p @click="incrementQuantity(item.id)"
-                                            class="flex items-center justify-center w-8 h-8 text-white bg-red-600 rounded cursor-pointer">
-                                            <i class="ri-add-line"></i>
-                                        </p>
-                                    </div>
-                                    <span class="text-lg font-bold">@ {{ item.unit_price || item.selling_price }} LKR</span>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-2xl font-bold text-red-600">
-                                        {{ item.return_type === 'cash' ? '-' : '' }}{{ (item.quantity * (item.unit_price || item.selling_price)).toFixed(2) }} LKR
-                                    </p>
-                                </div>
-                            </div>
-
-                            <!-- Return Reason (Required) -->
-                            <div class="space-y-2">
-                                <label class="text-lg font-semibold text-gray-700">Reason:<span class="text-red-500">*</span></label>
-                                <input v-model="item.return_reason" type="text"
-                                    placeholder="Enter reason for return (required)"
-                                    required
-                                    class="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                            </div>
-
-                            <!-- P2P New Product Selection -->
-                            <div v-if="item.return_type === 'p2p'" class="p-3 bg-blue-50 border border-blue-300 rounded-lg">
-                                <div class="flex items-center justify-between mb-2">
-                                    <p class="text-sm font-semibold text-blue-900">📝 New Products (Exchange):</p>
-                                    <p class="text-xs text-gray-600 italic">Use "User Manual" button above to add products</p>
-                                </div>
-
-                                <!-- Display P2P New Products for this return item -->
-                                <div v-if="getP2PNewProducts(item.sale_item_id).length > 0" class="space-y-2 mt-2">
-                                    <div v-for="newProd in getP2PNewProducts(item.sale_item_id)" :key="newProd.id"
-                                        class="flex items-center justify-between p-2 bg-white border border-blue-300 rounded">
-                                        <div class="flex-1">
-                                            <p class="font-semibold text-sm">{{ newProd.name }}</p>
-                                            <p class="text-xs text-gray-600">Qty: {{ newProd.quantity }} × {{ newProd.selling_price }} LKR</p>
-                                        </div>
-                                        <div class="flex items-center space-x-2">
-                                            <span class="text-lg font-bold text-blue-600">{{ (newProd.quantity * newProd.selling_price).toFixed(2) }} LKR</span>
-                                            <button @click="removeP2PProduct(newProd.id)"
-                                                class="text-red-600 hover:text-red-800">
-                                                <i class="ri-close-circle-line text-xl"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="mt-2 pt-2 border-t border-blue-300">
-                                        <div class="flex justify-between text-sm">
-                                            <span>Total New Products:</span>
-                                            <span class="font-bold">{{ calculateP2PNewProductsTotal(item.sale_item_id).toFixed(2) }} LKR</span>
-                                        </div>
-                                        <div class="flex justify-between text-sm mt-1">
-                                            <span>Return Amount:</span>
-                                            <span class="font-bold text-red-600">-{{ (item.quantity * (item.unit_price || item.selling_price)).toFixed(2) }} LKR</span>
-                                        </div>
-                                        <div class="flex justify-between text-lg font-bold mt-1 pt-1 border-t border-blue-400">
-                                            <span>Net Amount:</span>
-                                            <span :class="calculateP2PNet(item) >= 0 ? 'text-green-600' : 'text-orange-600'">
-                                                {{ calculateP2PNet(item) >= 0 ? '+' : '' }}{{ calculateP2PNet(item).toFixed(2) }} LKR
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div v-else class="text-sm text-gray-600 italic text-center py-2">
-                                    No new products added yet. Click "User Manual" to add products.
-                                </div>
-                            </div>
-
-                            <!-- Show original discounts if any -->
-                            <div v-if="item.original_discount && item.original_discount > 0" class="text-sm text-gray-600 italic">
-                                <p>Original Discount: {{ item.original_discount }}{{ item.original_discount_type === 'percent' ? '%' : ' LKR' }}</p>
-                            </div>
-                          </div>
-
-                          <!-- P2P New Product Display (in Return Mode) -->
-                          <div v-else-if="isReturnMode && item.is_p2p_new_product" class="space-y-2">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <div class="flex items-center space-x-2">
-                                        <p class="text-xl font-bold text-blue-600">NEW: {{ item.name }}</p>
-                                        <span class="px-2 py-1 bg-blue-600 text-white text-xs rounded">Exchange Product</span>
-                                    </div>
-                                    <p class="text-sm text-gray-600">For P2P Return</p>
-                                    <p class="text-lg font-semibold">Price: {{ item.selling_price }} LKR</p>
-                                </div>
-                            </div>
-
-                            <!-- Quantity Controls -->
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-4">
-                                    <span class="text-sm text-gray-600">Quantity:</span>
-                                    <div class="flex space-x-2">
-                                        <p @click="decrementQuantity(item.id)"
-                                            class="flex items-center justify-center w-8 h-8 text-white bg-blue-600 rounded cursor-pointer">
-                                            <i class="ri-subtract-line"></i>
-                                        </p>
-                                        <input type="number" v-model.number="item.quantity" min="1"
-                                            class="w-16 px-2 text-center border-2 border-blue-600 rounded" />
-                                        <p @click="incrementQuantity(item.id)"
-                                            class="flex items-center justify-center w-8 h-8 text-white bg-blue-600 rounded cursor-pointer">
-                                            <i class="ri-add-line"></i>
-                                        </p>
-                                    </div>
-                                    <span class="text-lg font-bold">@ {{ item.selling_price }} LKR</span>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-2xl font-bold text-blue-600">
-                                        +{{ (item.quantity * item.selling_price).toFixed(2) }} LKR
-                                    </p>
-                                </div>
-                            </div>
-                          </div>
-
-                          <!-- Normal Mode Display -->
-                          <div v-else>
                           <!-- 2-column layout (left details, right actions/price) -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 
@@ -535,13 +337,9 @@
                                     </div>
                                 </div>
                             </div>
-                            </div>
                             <div class="flex justify-end w-1/6">
                                 <p @click="removeProduct(item.id)"
-                                    :class="isReturnMode && !item.is_p2p_new_product ? 'text-red-600 border-red-600' :
-                                            isReturnMode && item.is_p2p_new_product ? 'text-blue-600 border-blue-600' :
-                                            'text-black border-black'"
-                                    class="text-3xl border-2 rounded-full cursor-pointer">
+                                    class="text-3xl text-black border-2 border-black rounded-full cursor-pointer">
                                     <i class="ri-close-line"></i>
                                 </p>
                             </div>
@@ -582,9 +380,9 @@
                                 </span>
                             </div>
                             <div class="flex items-center justify-between w-full px-8 pt-4 pb-4 border-b border-black">
-                                <p class="text-xl text-black">Cash<span class="text-red-500">*</span></p>
+                                <p class="text-xl text-black">Cash</p>
                                 <span>
-                                    <CurrencyInput v-model="cash" :options="{ currency: 'EUR', min: 0 }" @blur="validateCash" />
+                                    <CurrencyInput v-model="cash" :options="{ currency: 'EUR' }" />
                                     <span class="ml-2">LKR</span>
                                 </span>
                             </div>
@@ -672,18 +470,15 @@
                                 <button @click="() => {
                                     submitOrder();
                                 }
-                                    " type="button" :disabled="(products.length === 0 && returnItems.length === 0) || !cash || cash <= 0" :class="[
-                                        'w-full py-4 text-2xl font-bold tracking-wider text-center text-white uppercase rounded-xl transition-colors',
-                                        ((products.length === 0 && returnItems.length === 0) || !cash || cash <= 0)
-                                            ? 'bg-gray-400 cursor-not-allowed'
-                                            : 'bg-black hover:bg-gray-800 cursor-pointer',
+                                    " type="button" :disabled="products.length === 0 && returnItems.length === 0" :class="[
+                                        'w-full bg-black py-4 text-2xl font-bold tracking-wider text-center text-white uppercase rounded-xl',
+                                        (products.length === 0 && returnItems.length === 0)
+                                            ? ' cursor-not-allowed'
+                                            : ' cursor-pointer',
                                     ]">
                                     <i class="pr-4 ri-add-circle-fill"></i> Confirm Order
                                 </button>
                             </div>
-                            <p v-if="!cash || cash <= 0" class="text-center text-red-600 text-sm mt-2 font-semibold">
-                                ⚠️ Please enter cash amount to confirm order
-                            </p>
                         </div>
                     </div>
                 </div>
@@ -849,12 +644,6 @@ const custom_discount_type = ref('percent');
 const orderid = computed(() => generateOrderId());
 const actualOrderId = ref(''); // For storing actual order IDs (returns, etc.)
 
-// Return Mode
-const isReturnMode = ref(false);
-const returnModeOrderId = ref('');
-const originalSaleData = ref(null);
-const p2pReturnItemId = ref(null); // Track which return item is being processed for P2P
-
 const errorMessage = ref("");
 
 const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
@@ -931,10 +720,7 @@ const props = defineProps({
     allemployee: Array,
     colors: Array,
     sizes: Array,
-    sales: {
-        type: Array,
-        default: () => []
-    },
+    sales:Array,
     saleItems: { // Add this prop
         type: Array,
         default: () => []
@@ -945,6 +731,8 @@ const props = defineProps({
     },
     suppliers: { type: Array, default: () => [] },
 });
+
+const sales = ref([]);
 const saleItemsState = ref([]);
 const selectedSaleEmployee = ref(null);
 const returnItems = ref([]);
@@ -1111,133 +899,6 @@ const removeProduct = (id) => {
     products.value = products.value.filter((item) => item.id !== id);
 };
 
-// Return Mode Functions
-const toggleReturnMode = () => {
-    isReturnMode.value = !isReturnMode.value;
-    if (!isReturnMode.value) {
-        // Exiting return mode - clear everything
-        returnModeOrderId.value = '';
-        originalSaleData.value = null;
-        products.value = [];
-        customer.value = {
-            name: "",
-            countryCode: "",
-            contactNumber: "",
-            email: "",
-        };
-        employee_id.value = "";
-    } else {
-        // Entering return mode - clear products
-        products.value = [];
-    }
-};
-
-const loadOrderForReturn = async () => {
-    if (!returnModeOrderId.value) {
-        isAlertModalOpen.value = true;
-        message.value = "Please enter an order ID to return";
-        return;
-    }
-
-    try {
-        // Find the sale by order_id (exact match or case-insensitive)
-        const orderIdToFind = returnModeOrderId.value.trim();
-        const sale = props.sales.find(s =>
-            s.order_id === orderIdToFind ||
-            s.order_id.toLowerCase() === orderIdToFind.toLowerCase()
-        );
-
-        if (!sale) {
-            isAlertModalOpen.value = true;
-            message.value = `Order #${orderIdToFind} not found. Please check the order ID and try again.`;
-            return;
-        }
-
-        // Fetch sale items with remaining quantities
-        const response = await axios.post('/api/sale/items', {
-            sale_id: sale.id
-        });
-
-        originalSaleData.value = response.data;
-
-        // Load customer info
-        if (sale.customer) {
-            customer.value = {
-                name: sale.customer.name || "",
-                contactNumber: sale.customer.contact_number || "",
-                email: sale.customer.email || "",
-            };
-        }
-
-        // Load employee info
-        if (response.data.employee) {
-            employee_id.value = response.data.employee.id;
-        }
-
-        // Load products into cart with return fields
-        products.value = response.data.saleItems.map(item => {
-            const baseProduct = item.product;
-            return {
-                ...baseProduct,
-                id: item.id, // Use sale_item id for uniqueness
-                sale_item_id: item.id,
-                original_sale_id: sale.id,
-                quantity: 1, // Start with 1 for return
-                original_quantity: item.quantity,
-                remaining_quantity: item.remaining_quantity,
-                unit_price: item.unit_price,
-                selling_price: item.unit_price,
-                return_type: '',
-                return_reason: '',
-                return_date: new Date().toISOString().split('T')[0],
-                // Store original discount info if available
-                original_discount: item.discount || 0,
-                original_discount_type: item.discount_type || 'percent',
-                // P2P fields
-                new_product_id: '',
-                new_product_quantity: 1,
-            };
-        });
-
-        message.value = `Loaded ${products.value.length} items from order #${returnModeOrderId.value}`;
-        isAlertModalOpen.value = true;
-    } catch (error) {
-        console.error("Error loading order:", error);
-        isAlertModalOpen.value = true;
-        message.value = error.response?.data?.message || "Failed to load order. Please try again.";
-    }
-};
-
-const getNewProductPrice = (productId) => {
-    if (!productId) return 0;
-    const product = props.products.find(p => p.id === productId);
-    return product ? parseFloat(product.selling_price) : 0;
-};
-
-// P2P Helper Functions
-const getP2PNewProducts = (saleItemId) => {
-    return products.value.filter(p =>
-        p.is_p2p_new_product && p.p2p_for_sale_item_id === saleItemId
-    );
-};
-
-const removeP2PProduct = (productId) => {
-    products.value = products.value.filter(p => p.id !== productId);
-};
-
-const calculateP2PNewProductsTotal = (saleItemId) => {
-    const p2pProducts = getP2PNewProducts(saleItemId);
-    return p2pProducts.reduce((sum, p) => {
-        return sum + (p.quantity * parseFloat(p.selling_price || 0));
-    }, 0);
-};
-
-const calculateP2PNet = (returnItem) => {
-    const returnAmount = returnItem.quantity * (returnItem.unit_price || returnItem.selling_price);
-    const newProductsTotal = calculateP2PNewProductsTotal(returnItem.sale_item_id);
-    return newProductsTotal - returnAmount;
-};
-
 const removeCoupon = () => {
     appliedCoupon.value = null; // Clear the applied coupon
     couponForm.code = ""; // Clear the coupon field
@@ -1261,15 +922,7 @@ const selectPaymentMethod = (method) => {
 const incrementQuantity = (id) => {
     const product = products.value.find((item) => item.id === id);
     if (product) {
-        if (isReturnMode.value) {
-            // In return mode, respect the original quantity limit
-            const maxQty = product.original_quantity || product.remaining_quantity || product.quantity;
-            if (product.quantity < maxQty) {
-                product.quantity += 1;
-            }
-        } else {
-            product.quantity += 1;
-        }
+        product.quantity += 1;
     }
 };
 
@@ -1297,123 +950,7 @@ const orderId = computed(() => {
 });
 
 const submitOrder = async () => {
-    // Validate cash amount is entered and not negative
-    if (!cash.value || cash.value <= 0) {
-        isAlertModalOpen.value = true;
-        message.value = "Please enter a valid cash amount (must be greater than 0)";
-        return;
-    }
-
-    // Prevent negative cash values
-    if (cash.value < 0) {
-        isAlertModalOpen.value = true;
-        message.value = "Cash amount cannot be negative";
-        return;
-    }
-
-    // Handle Return Mode submission
-    if (isReturnMode.value) {
-        // Filter out P2P new products for validation
-        const returnItems = products.value.filter(item => !item.is_p2p_new_product);
-
-        // Validate return mode items
-        const missingReturnType = returnItems.some(item => !item.return_type);
-        if (missingReturnType) {
-            isAlertModalOpen.value = true;
-            message.value = "Please select Return Type (Cash or P2P) for all items";
-            return;
-        }
-
-        const missingReason = returnItems.some(item => !item.return_reason || !item.return_reason.trim());
-        if (missingReason) {
-            isAlertModalOpen.value = true;
-            message.value = "Please provide a reason for all return items";
-            return;
-        }
-
-        // Validate P2P returns have new products
-        const p2pItems = returnItems.filter(item => item.return_type === 'p2p');
-        for (const p2pItem of p2pItems) {
-            const newProducts = getP2PNewProducts(p2pItem.sale_item_id);
-            if (newProducts.length === 0) {
-                isAlertModalOpen.value = true;
-                message.value = `Please add new products for P2P return of "${p2pItem.name}". Use the "User Manual" button to add products.`;
-                return;
-            }
-        }
-
-        // Prepare return data for new return mode (exclude P2P new products)
-        const returnItemsData = products.value
-            .filter(item => !item.is_p2p_new_product)
-            .map(item => ({
-                sale_id: item.original_sale_id,
-                sale_item_id: item.sale_item_id,
-                product_id: item.product_id || item.id,
-                quantity: item.quantity,
-                reason: item.return_reason,
-                unit_price: item.unit_price,
-                return_date: item.return_date,
-                return_type: item.return_type,
-            }));
-
-        // For P2P returns, prepare new products data (all P2P new products)
-        const newProductsData = products.value
-            .filter(item => item.is_p2p_new_product)
-            .map(item => ({
-                product_id: item.id,
-                quantity: item.quantity,
-                selling_price: item.selling_price,
-            }));
-
-        try {
-            const response = await axios.post('/return-bill', {
-                return_items: returnItemsData,
-                new_products: newProductsData.length > 0 ? newProductsData : undefined
-            });
-
-            if (response.data.success) {
-                const returnBillData = response.data.return_bill_data;
-                const returnSaleData = response.data.return_sale_data;
-
-                // Show success message
-                if (returnSaleData) {
-                    // P2P return with new sale
-                    actualOrderId.value = returnSaleData.order_id || "";
-                    modalCustomer.value = returnSaleData.customer || { name: "", contactNumber: "", email: "" };
-                    modalEmployee.value = returnSaleData.employee || { name: "" };
-                    modalProducts.value = returnSaleData.items || [];
-                    cash.value = returnSaleData.total_amount || 0;
-                    custom_discount.value = 0;
-                    selectedPaymentMethod.value = returnSaleData.payment_method || "";
-                    returnAmount.value = returnSaleData.return_amount || 0;
-                    newProductAmount.value = returnSaleData.new_product_amount || 0;
-                    isReturnBillPrinted.value = true;
-
-                    message.value = `P2P Return Processed Successfully!\n\nReturned: ${returnBillData.totals.return_amount.toFixed(2)} LKR\nNew Products: ${returnBillData.totals.new_product_amount.toFixed(2)} LKR`;
-                } else {
-                    // Cash return only
-                    message.value = `Cash Return Processed Successfully!\n\nReturned Amount: ${returnBillData.totals.return_amount.toFixed(2)} LKR\nOriginal bill updated.`;
-                }
-
-                isSuccessModalOpen.value = true;
-
-                // Exit return mode and reset
-                isReturnMode.value = false;
-                returnModeOrderId.value = '';
-                originalSaleData.value = null;
-                products.value = [];
-                customer.value = { name: "", countryCode: "", contactNumber: "", email: "" };
-                employee_id.value = "";
-            }
-        } catch (error) {
-            console.error("Error processing return:", error);
-            isAlertModalOpen.value = true;
-            message.value = error.response?.data?.error || "Failed to process return. Please try again.";
-        }
-        return;
-    }
-
-    // Check if this is a return transaction (old return modal flow)
+    // Check if this is a return transaction
     if (returnItems.value.length > 0) {
         const validation = validateReturnItems();
         if (!validation.valid) {
@@ -1770,33 +1307,6 @@ watch(
 
 
 const subtotal = computed(() => {
-    if (isReturnMode.value) {
-        // In return mode, calculate based on return type
-        return parseFloat(products.value
-            .reduce((total, item) => {
-                // P2P new products - add to total
-                if (item.is_p2p_new_product) {
-                    const itemPrice = parseFloat(item.selling_price) * item.quantity;
-                    return total + itemPrice;
-                }
-
-                // Return items
-                const itemPrice = parseFloat(item.unit_price || item.selling_price) * item.quantity;
-
-                if (item.return_type === 'cash') {
-                    // Cash return - subtract from total
-                    return total - itemPrice;
-                } else if (item.return_type === 'p2p') {
-                    // P2P return - just subtract return amount (new products handled separately)
-                    return total - itemPrice;
-                } else {
-                    // No return type selected yet, show as negative
-                    return total - itemPrice;
-                }
-            }, 0)
-            .toFixed(2));
-    }
-
     return parseFloat(products.value
         .reduce(
             (total, item) => total + parseFloat(item.selling_price) * item.quantity,
@@ -1829,26 +1339,6 @@ const validateCustomDiscount = () => {
         custom_discount.value = 0; // Set default to 0 if the field is empty or invalid
     }
 };
-
-const validateCash = () => {
-    // Prevent negative values
-    if (cash.value < 0) {
-        cash.value = 0;
-        isAlertModalOpen.value = true;
-        message.value = "Cash amount cannot be negative";
-    }
-    // Ensure it's a valid number
-    if (isNaN(cash.value)) {
-        cash.value = 0;
-    }
-};
-
-// Watch for cash value changes to prevent negative values
-watch(cash, (newValue) => {
-    if (newValue < 0) {
-        cash.value = 0;
-    }
-});
 
 // const openReturnBills =() =>{
 //     router.visit(route('return-bill.index'));
@@ -2038,9 +1528,18 @@ const handleScannerInput = (event) => {
 };
 
 // Attach the keypress event listener when the component is mounted
-onMounted(() => {
+onMounted(async() => {
     document.addEventListener("keypress", handleScannerInput);
-    // Sales are already available from props, no need to fetch
+
+    try{
+        const response = await axios.get('/pos');
+        sales.value = response.data.sales || [];
+    }
+    catch(error){
+        console.error("Error fetching sales:", error);
+        sales.value = [];
+    }
+
 });
 
 // const loadSales = async () => {
@@ -2083,33 +1582,20 @@ const removeDiscount = (id) => {
 const handleSelectedProducts = (selectedProducts) => {
     selectedProducts.forEach((fetchedProduct) => {
         const existingProduct = products.value.find(
-            (item) => item.id === fetchedProduct.id && !item.is_p2p_new_product
+            (item) => item.id === fetchedProduct.id
         );
 
-        if (existingProduct && !isReturnMode.value) {
-            // If the product exists in normal mode, increment its quantity
+        if (existingProduct) {
+            // If the product exists, increment its quantity
             existingProduct.quantity += 1;
         } else {
             // If the product doesn't exist, add it with a default quantity
-            const newProduct = {
+            products.value.push({
                 ...fetchedProduct,
                 quantity: 1,
-                discount_type: 'percent',
+                 discount_type: 'percent',
                 apply_discount: false, // Default additional attribute
-            };
-
-            // In return mode, mark products added via User Manual as P2P new products
-            if (isReturnMode.value) {
-                // Check if any return items have P2P type selected
-                const p2pReturnItems = products.value.filter(p => p.return_type === 'p2p');
-                if (p2pReturnItems.length > 0) {
-                    // Link to the first P2P return item, or allow user to specify
-                    newProduct.is_p2p_new_product = true;
-                    newProduct.p2p_for_sale_item_id = p2pReturnItems[0].sale_item_id;
-                }
-            }
-
-            products.value.push(newProduct);
+            });
         }
     });
 };
