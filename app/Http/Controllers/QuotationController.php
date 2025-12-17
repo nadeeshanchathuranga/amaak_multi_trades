@@ -24,7 +24,7 @@ class QuotationController extends Controller
     public function index()
     { 
 
-        if (!Gate::allows('hasRole', ['Admin', 'Cashier'])) {
+        if (!Gate::allows('hasRole', ['Admin', 'Cashier', 'Operator'])) {
             abort(403, 'Unauthorized');
         }
 
@@ -51,7 +51,7 @@ class QuotationController extends Controller
     }
     public function getProduct(Request $request)
     {
-        if (!Gate::allows('hasRole', ['Admin', 'Cashier'])) {
+        if (!Gate::allows('hasRole', ['Admin', 'Cashier', 'Operator'])) {
             abort(403, 'Unauthorized');
         }
 
@@ -77,6 +77,10 @@ class QuotationController extends Controller
 
     public function saveQuotationPdf(Request $request)
 {
+    if (!Gate::allows('hasRole', ['Admin', 'Cashier', 'Operator'])) {
+        abort(403, 'Unauthorized');
+    }
+
     $request->validate([
         'pdf' => 'required|file|max:2048', 
         'order_id' => 'required|string',
