@@ -40,6 +40,7 @@
                         class="mt-2 w-full rounded-md px-4 py-2 text-black focus:outline-none focus:ring focus:ring-blue-600">
                   <option value="Manager">Manager</option>
                   <option value="Cashier">Cashier</option>
+                  <option value="Operator">Operator</option>
                 </select>
                 <p v-if="form.errors.role_type" class="mt-2 text-sm text-red-400">{{ form.errors.role_type }}</p>
               </div>

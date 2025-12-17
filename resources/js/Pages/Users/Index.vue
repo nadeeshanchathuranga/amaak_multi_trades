@@ -61,7 +61,7 @@
                       'bg-red-100 text-red-700': user.role_type==='Admin',
                       'bg-green-100 text-green-700': user.role_type==='Manager',
                       'bg-blue-100 text-blue-700': user.role_type==='Cashier',
-                      'bg-blue-100 text-blue-700': user.role_type==='Operator',
+                      'bg-purple-100 text-purple-700': user.role_type==='Operator',
                     }"
                   >
                     {{ user.role_type }}
