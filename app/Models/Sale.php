@@ -38,6 +38,47 @@ class Sale extends Model
         return 0;
     }
 
+    /**
+     * Recalculate sale totals from all sale items (including negative quantity return items)
+     * This ensures total_amount and total_cost are accurate after returns.
+     */
+    public function recalculateTotals()
+    {
+        $totalAmount = 0;
+        $totalCost = 0;
+        $totalDiscount = 0;
+
+        foreach ($this->saleItems as $item) {
+            // Negative quantities from returns will automatically subtract
+            $totalAmount += $item->total_price;
+            $totalDiscount += $item->discount;
+            
+            $itemCost = $item->cost_price > 0 ? $item->cost_price : ($item->product->cost_price ?? 0);
+            $totalCost += $item->quantity * $itemCost;
+        }
+
+        $this->total_amount = $totalAmount;
+        $this->total_cost = $totalCost;
+        $this->discount = $totalDiscount;
+        $this->save();
+
+        return $this;
+    }
+
+    /**
+     * Calculate net profit for this sale
+     * profit = total_amount - total_cost
+     */
+    public function getNetProfitAttribute()
+    {
+        $totalCost = 0;
+        foreach ($this->saleItems as $item) {
+            $itemCost = $item->cost_price > 0 ? $item->cost_price : ($item->product->cost_price ?? 0);
+            $totalCost += $item->quantity * $itemCost;
+        }
+        return $this->total_amount - $totalCost;
+    }
+
 
 
 

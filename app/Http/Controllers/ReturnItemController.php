@@ -95,10 +95,15 @@ class ReturnItemController extends Controller
                     throw new \Exception("Sale item not found with ID {$item['sale_item_id']}");
                 }
 
+                // Skip if this is a negative quantity item (return item itself)
+                if ($saleItem->quantity <= 0) {
+                    throw new \Exception("Cannot return from a return record. Sale item ID {$item['sale_item_id']} is not a valid sale.");
+                }
+
                 // Calculate remaining quantity available for return
                 $alreadyReturned = ReturnItem::where('sale_item_id', $item['sale_item_id'])
                     ->sum('quantity');
-                $remainingQty = $saleItem->quantity;
+                $remainingQty = $saleItem->quantity - $alreadyReturned;
 
                 if ($item['quantity'] > $remainingQty) {
                     throw new \Exception("Cannot return {$item['quantity']} units. Only {$remainingQty} units available for return.");
@@ -130,11 +135,9 @@ class ReturnItemController extends Controller
                     'discount' => -$proportionalDiscount, // NEGATIVE discount being reversed
                 ]);
 
-                // Update sale totals
-                $sale->total_amount -= $returnAmount;
-                $sale->total_cost -= ($item['quantity'] * $originalCostPrice);
-                $sale->discount -= $proportionalDiscount;
-                $sale->save();
+                // Recalculate sale totals from all sale items (positive and negative)
+                $sale->refresh(); // Reload to get the new sale_item we just created
+                $sale->recalculateTotals();
 
                 // Increase stock for returned product
                 $returnedProduct->update([
@@ -182,11 +185,10 @@ class ReturnItemController extends Controller
                     'reason' => $item['reason'],
                 ];
 
-                // Update the original sale item quantity (reduce it)
-                $saleItem->quantity -= $item['quantity'];
-                $saleItem->total_price -= $returnAmount;
-                $saleItem->discount -= $proportionalDiscount;
-                $saleItem->save();
+                // NOTE: We do NOT modify the original sale_item anymore.
+                // The negative quantity sale_item created above (line 123-131) 
+                // already handles the return accounting automatically.
+                // Modifying the original would double-count the return.
             }
 
             // Apply custom discount if provided
@@ -244,18 +246,22 @@ class ReturnItemController extends Controller
 
         $saleItems = SaleItem::with('product')
             ->where('sale_id', $request->input('sale_id'))
+            ->where('quantity', '>', 0) // Only get positive quantity items (original sales, not returns)
             ->get()
             ->map(function ($item) {
                 // Calculate already returned quantity using sale_item_id
                 $returnedQty = ReturnItem::where('sale_item_id', $item->id)
                     ->sum('quantity');
 
-                // Note: sale_items.quantity gets reduced after each return
-                // So original_quantity = current_quantity + already_returned
-                $originalQuantity = $item->quantity + $returnedQty;
+                // Since we now keep the original sale_item unchanged:
+                // - item->quantity is the ORIGINAL sale quantity
+                // - returnedQty is how much has been returned
+                // - remaining_quantity is what can still be returned
+                $originalQuantity = $item->quantity;
+                $remainingQuantity = $originalQuantity - $returnedQty;
 
                 $item->returned_quantity = $returnedQty;
-                $item->remaining_quantity = $item->quantity; // Current quantity IS the remaining quantity
+                $item->remaining_quantity = $remainingQuantity;
                 $item->original_sale_quantity = $originalQuantity;
 
                 return $item;
