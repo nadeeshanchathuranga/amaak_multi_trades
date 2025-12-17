@@ -155,13 +155,14 @@
                    : basePrice;    // Use selling price or unit price if no discount
 
                // Check if this is a return item (negative price or quantity)
-               const isReturn = parseFloat(basePrice) < 0 || parseFloat(product.quantity) < 0;
+               const isReturn = parseFloat(basePrice) < 0 || parseFloat(product.quantity) < 0 || product.return_reason;
                const absPrice = Math.abs(basePrice);
                const absQty = Math.abs(product.quantity);
+               const returnLabel = isReturn ? '<span style="background-color: red; color: white; padding: 2px 4px; font-size: 8px; border-radius: 2px; margin-left: 4px;">RETURN</span>' : '';
 
                return `
            <tr>
-             <td>${product.name || 'Unknown'}</td>
+             <td>${product.name || 'Unknown'}${returnLabel}</td>
            <td style="text-align: center;">
   ${absQty} ${product.unit_id ? (product.unit?.name || '') : ''}
 </td>
@@ -171,6 +172,7 @@
                        ? `<div style="font-weight: bold; font-size: 7px; background-color:black; color:white;text-align:center;">${product.discount}% off</div>`
                        : ""
                    }
+               ${product.return_reason ? `<div style="font-size: 8px; color: #666; font-style: italic;">Reason: ${product.return_reason}</div>` : ''}
                <div>${isReturn ? '-' : ''}${absPrice}</div>
              </td>
            </tr>
