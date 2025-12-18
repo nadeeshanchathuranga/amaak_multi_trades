@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\CreditBill;
+use App\Models\CreditBillPayment;
 use App\Models\Customer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -59,6 +60,7 @@ class CreditBillController extends Controller
 
         $request->validate([
             'payment_amount' => 'required|numeric|min:0',
+            'payment_method' => 'nullable|string|in:cash,card,bank_transfer,check',
             'notes' => 'nullable|string|max:500',
         ]);
 
@@ -70,21 +72,16 @@ class CreditBillController extends Controller
         }
 
         DB::transaction(function () use ($creditBill, $paymentAmount, $request) {
-            $creditBill->paid_amount += $paymentAmount;
-            $creditBill->remaining_amount -= $paymentAmount;
+            // Create payment record
+            $creditBill->payments()->create([
+                'payment_amount' => $paymentAmount,
+                'payment_date' => now(),
+                'payment_method' => $request->payment_method ?? 'cash',
+                'notes' => $request->notes,
+                'user_id' => auth()->id(),
+            ]);
 
-            // Update payment status
-            if ($creditBill->remaining_amount <= 0) {
-                $creditBill->payment_status = 'paid';
-            } elseif ($creditBill->paid_amount > 0) {
-                $creditBill->payment_status = 'partial';
-            }
-
-            if ($request->notes) {
-                $creditBill->notes = $request->notes;
-            }
-
-            $creditBill->save();
+            // The CreditBillPayment model events will automatically update the credit bill amounts
         });
 
         return back()->with('success', 'Payment updated successfully!');
@@ -98,11 +95,17 @@ class CreditBillController extends Controller
 
         $creditBill = CreditBill::findOrFail($id);
         
-        $creditBill->update([
-            'paid_amount' => $creditBill->total_amount,
-            'remaining_amount' => 0,
-            'payment_status' => 'paid',
-        ]);
+        // Create a payment record for the full remaining amount
+        if ($creditBill->remaining_amount > 0) {
+            $creditBill->payments()->create([
+                'payment_amount' => $creditBill->remaining_amount,
+                'payment_date' => now(),
+                'payment_method' => 'cash',
+                'notes' => 'Marked as fully paid',
+                'user_id' => auth()->id(),
+            ]);
+        }
+        // The CreditBillPayment model events will automatically update the amounts
 
         return back()->with('success', 'Credit bill marked as paid!');
     }

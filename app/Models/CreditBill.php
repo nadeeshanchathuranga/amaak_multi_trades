@@ -39,6 +39,11 @@ class CreditBill extends Model
         return $this->belongsTo(Customer::class);
     }
 
+    public function payments()
+    {
+        return $this->hasMany(CreditBillPayment::class);
+    }
+
     // Scopes
     public function scopePending($query)
     {
@@ -58,5 +63,49 @@ class CreditBill extends Model
     public function scopeOverdue($query)
     {
         return $query->where('due_date', '<', now())->whereIn('payment_status', ['pending', 'partial']);
+    }
+
+    // Methods to handle payment updates
+    public function updatePaymentAmounts()
+    {
+        // Calculate total paid from all payments
+        $totalPaid = $this->payments()->sum('payment_amount');
+        
+        // Update amounts
+        $this->paid_amount = $totalPaid;
+        $this->remaining_amount = max(0, $this->total_amount - $totalPaid);
+        
+        // Update payment status
+        if ($this->remaining_amount <= 0) {
+            $this->payment_status = 'paid';
+        } elseif ($totalPaid > 0) {
+            $this->payment_status = 'partial';
+        } else {
+            $this->payment_status = 'pending';
+        }
+        
+        $this->save();
+        
+        return $this;
+    }
+
+    public function addPayment($amount, $paymentMethod = 'cash', $notes = null, $userId = null)
+    {
+        // Validate payment amount
+        if ($amount <= 0 || $amount > $this->remaining_amount) {
+            throw new \Exception('Invalid payment amount');
+        }
+
+        // Create payment record
+        $payment = $this->payments()->create([
+            'payment_amount' => $amount,
+            'payment_date' => now(),
+            'payment_method' => $paymentMethod,
+            'notes' => $notes,
+            'user_id' => $userId
+        ]);
+
+        // Update amounts (this will be handled by the payment model events)
+        return $payment;
     }
 }

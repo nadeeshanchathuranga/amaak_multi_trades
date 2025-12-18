@@ -99,6 +99,29 @@
                   <div class="w-full">
                     <div>
                       <label class="block text-sm font-medium text-gray-300">
+                        Payment Method:
+                      </label>
+                      <select
+                        v-model="form.payment_method"
+                        id="payment_method"
+                        class="w-full px-4 py-3 mt-1 text-white bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="cash">Cash</option>
+                        <option value="card">Card</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="check">Check</option>
+                      </select>
+                      <div v-if="form.errors.payment_method" class="mt-2 text-red-400 text-sm">
+                        {{ form.errors.payment_method }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-8 mt-4">
+                  <div class="w-full">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-300">
                         Notes (Optional):
                       </label>
                       <textarea
@@ -170,6 +193,7 @@ const emit = defineEmits(["update:open"]);
 
 const form = useForm({
   payment_amount: "",
+  payment_method: "cash",
   notes: "",
 });
 
@@ -178,6 +202,7 @@ watch(() => props.open, (newValue) => {
   if (newValue && props.selectedCreditBill) {
     form.reset();
     form.payment_amount = "";
+    form.payment_method = "cash";
     form.notes = "";
   }
 });
