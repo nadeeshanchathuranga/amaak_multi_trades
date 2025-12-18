@@ -24,7 +24,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name'      => 'manager',
                 'email'     => 'manager@manager.com',
-                'role_type' => 'Manager',
+                'role_type' => 'Manag0er',
                 'password'  => 'manager@amaak2025',
             ],
             [

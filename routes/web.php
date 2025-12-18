@@ -105,6 +105,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/pos/submit', [PosController::class, 'submit'])->name('pos.checkout');
     Route::resource('payment', PaymentController::class);
     Route::resource('reports', ReportController::class);
+    Route::post('/add-in-cash', [ReportController::class, 'addInCash'])->name('reports.addInCash');
     Route::get('/batch-management/search', [ReportController::class, 'searchByCode']);
     Route::resource('customers', CustomerController::class);
     Route::resource('colors', ColorController::class);

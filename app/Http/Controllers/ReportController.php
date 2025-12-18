@@ -10,6 +10,7 @@ use App\Models\ReturnItem;
 use App\Models\StockTransaction;
 use App\Models\Expense;
 use App\Models\CreditBillPayment;
+use App\Models\InCash;
 use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -433,11 +434,19 @@ $todaySalesCount = count($todaySales);
     $profitAfterExpenses = $netProfit + (isset($paintOrderSummary['total_profit']) ? $paintOrderSummary['total_profit'] : 0) - $totalExpenses;
 
     // =========================
-    // 12. Credit Bill Calculations
+    // 12. In Cash Calculations
     // =========================
+    $inCashQuery = InCash::query();
     
-    // Calculate total credit bill amount (original sales made on credit)
-    $totalCreditBillAmount = $sales->where('payment_method', 'credit bill')->sum('total_amount');
+    if ($startDate && $endDate) {
+        $inCashQuery->whereBetween('created_at', [$startDate, $endDate]);
+    }
+    
+    $totalInCash = $inCashQuery->sum('amount');
+    $cashPlusSales = $totalSaleAmount + (isset($paintOrderSummary['total_amount']) ? $paintOrderSummary['total_amount'] : 0) + $totalInCash;
+
+    // =========================
+    // 13. Credit Bill Calculations
     
     // Calculate credit bill collections (payments received)
     $creditBillCollected = 0;
@@ -488,6 +497,9 @@ $todaySalesCount = count($todaySales);
         'paintOrderDetails' => $paintOrderDetails,
         'totalExpenses' => $totalExpenses,
         'profitAfterExpenses' => $profitAfterExpenses,
+        // In Cash data
+        'totalInCash' => $totalInCash,
+        'cashPlusSales' => $cashPlusSales,
         // Return items data
         'returnItems' => $returnItems,
         'totalReturnAmount' => $totalReturnAmount,
@@ -502,7 +514,7 @@ $todaySalesCount = count($todaySales);
         'creditBillCards' => [
             'total_outstanding' => $totalRemainingCreditBills,
             'total_collected' => $creditBillCollected,
-            'total_credit_bills' => $totalCreditBillAmount
+            'total_credit_bills' => $totalRemainingCreditBills
         ],
     ]);
 }
@@ -605,5 +617,27 @@ $todaySalesCount = count($todaySales);
     public function destroy(Report $report)
     {
         //
+    }
+
+    /**
+     * Store a new in-cash entry.
+     */
+    public function addInCash(Request $request)
+    {
+        if (!Gate::allows('hasRole', ['Admin'])) {
+            abort(403, 'Unauthorized');
+        }
+
+        $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'note' => 'nullable|string|max:1000',
+        ]);
+
+        InCash::create([
+            'amount' => $request->amount,
+            'note' => $request->note,
+        ]);
+
+        return redirect()->back()->with('success', 'Cash added successfully!');
     }
 }

@@ -214,6 +214,13 @@
           >
             Reset
           </Link>
+          <!-- Add In Cash Button -->
+          <button
+            @click="showAddCashModal = true"
+            class="px-6 py-3 text-xl font-normal tracking-wider text-white text-center bg-green-600 rounded-lg custom-select hidden sm:inline-block hover:bg-green-700"
+          >
+            AddInCash
+          </button>
 
         </div>
         <div class="w-full flex justify-center items-center space-x-4 md:hidden">
@@ -230,6 +237,13 @@
           >
             Reset
           </Link>
+          <!-- Add In Cash Button Mobile -->
+          <button
+            @click="showAddCashModal = true"
+            class="px-6 py-3 text-xl font-normal tracking-wider text-white text-center bg-green-600 rounded-lg custom-select hover:bg-green-700"
+          >
+            AddInCash
+          </button>
           </div>
       </div>
 
@@ -427,7 +441,7 @@
         </div>
 
     <!-- Expenses Section -->
-    <div class="grid w-full md:grid-cols-2 grid-cols-1 gap-4">
+    <div class="grid w-full md:grid-cols-3 grid-cols-1 gap-4">
       <!-- Total Expenses -->
       <div
         class="py-6 flex flex-col justify-center items-center border-2 border-[#DC2626] w-full space-y-8 rounded-2xl bg-[#DC262666] shadow-lg transform transition-transform duration-300 hover:-translate-y-4"
@@ -452,6 +466,19 @@
         </div>
         <div class="flex flex-col items-center justify-center">
           <p class="text-2xl font-bold text-black">{{ (profitAfterExpenses || 0).toLocaleString() }} LKR</p>
+        </div>
+      </div>
+      <!-- Cash + Total Sales -->
+      <div
+        class="py-6 flex flex-col justify-center items-center border-2 border-[#0EA5E9] w-full space-y-8 rounded-2xl bg-[#0EA5E966] shadow-lg transform transition-transform duration-300 hover:-translate-y-4"
+      >
+        <div class="flex flex-col items-center justify-center">
+          <h2 class="text-xl font-extrabold tracking-wide text-black uppercase">
+            Cash + Total Sales
+          </h2>
+        </div>
+        <div class="flex flex-col items-center justify-center">
+          <p class="text-2xl font-bold text-black">{{ (cashPlusSales || 0).toLocaleString() }} LKR</p>
         </div>
       </div>
     </div>
@@ -1148,6 +1175,66 @@
 
 
 
+  <!-- Add In Cash Modal -->
+  <div
+    v-if="showAddCashModal"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+    @click="closeModal"
+  >
+    <div
+      class="bg-white rounded-lg shadow-lg p-6 w-96 max-w-md"
+      @click.stop
+    >
+      <h2 class="text-2xl font-semibold text-gray-800 mb-4">Add In Cash</h2>
+      
+      <!-- Amount Input -->
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Amount (LKR) <span class="text-red-500">*</span>
+        </label>
+        <input
+          v-model="cashForm.amount"
+          type="number"
+          step="0.01"
+          placeholder="Enter amount"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          required
+        />
+      </div>
+
+      <!-- Note Input -->
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Note (Optional)
+        </label>
+        <textarea
+          v-model="cashForm.note"
+          placeholder="Add a note..."
+          rows="3"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+        ></textarea>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex justify-end space-x-3">
+        <button
+          @click="closeModal"
+          class="px-4 py-2 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          @click="saveCash"
+          class="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+          :disabled="!cashForm.amount || cashForm.amount <= 0"
+          :class="{ 'opacity-50 cursor-not-allowed': !cashForm.amount || cashForm.amount <= 0 }"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+
   <Footer />
 </template>
 <script setup>
@@ -1162,6 +1249,7 @@ import Footer from "@/Components/custom/Footer.vue";
 import Banner from "@/Components/Banner.vue";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import axios from "axios";
 
 import {
   Chart as ChartJS,
@@ -1219,6 +1307,9 @@ const props = defineProps({
   creditBillCollected: { type: Number, default: 0 },
   creditBillPayments: { type: Array, default: () => [] },
   outstandingCreditBills: { type: Number, default: 0 },
+  // In Cash props
+  totalInCash: { type: Number, default: 0 },
+  cashPlusSales: { type: Number, default: 0 },
 });
 
 const totalPrice = computed(() => {
@@ -1263,6 +1354,13 @@ const fetchProductByCode = async () => {
 // Date filters
 const startDate = ref(props.startDate);
 const endDate = ref(props.endDate);
+
+// Add In Cash Modal
+const showAddCashModal = ref(false);
+const cashForm = ref({
+  amount: '',
+  note: ''
+});
 
 const products = ref(props.products);
 const monthlySalesData = ref(props.monthlySalesData);
@@ -1913,6 +2011,42 @@ const filterData = () => {
     start_date: startDate.value,
     end_date: endDate.value,
   });
+};
+
+// Add In Cash Modal Methods
+const closeModal = () => {
+  showAddCashModal.value = false;
+  cashForm.value = {
+    amount: '',
+    note: ''
+  };
+};
+
+const saveCash = async () => {
+  try {
+    if (!cashForm.value.amount || cashForm.value.amount <= 0) {
+      alert('Please enter a valid amount.');
+      return;
+    }
+
+    const response = await router.post('/add-in-cash', {
+      amount: cashForm.value.amount,
+      note: cashForm.value.note
+    }, {
+      onSuccess: () => {
+        closeModal();
+        // You can add a success message here if needed
+        alert('Cash added successfully!');
+      },
+      onError: (errors) => {
+        console.error('Error adding cash:', errors);
+        alert('Error adding cash. Please try again.');
+      }
+    });
+  } catch (error) {
+    console.error('Error saving cash:', error);
+    alert('Error adding cash. Please try again.');
+  }
 };
 
 const downloadPDF = () => {
