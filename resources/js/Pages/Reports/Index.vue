@@ -456,6 +456,36 @@
       </div>
     </div>
 
+    <!-- Credit Bills Section -->
+    <div class="grid w-full md:grid-cols-2 grid-cols-1 gap-4">
+      <!-- Total Credit Bill Amount -->
+      <div
+        class="py-6 flex flex-col justify-center items-center border-2 border-[#F59E0B] w-full space-y-8 rounded-2xl bg-[#F59E0B66] shadow-lg transform transition-transform duration-300 hover:-translate-y-4"
+      >
+        <div class="flex flex-col items-center justify-center">
+          <h2 class="text-xl font-extrabold tracking-wide text-black uppercase">
+            Total Credit Bill Amount
+          </h2>
+        </div>
+        <div class="flex flex-col items-center justify-center">
+          <p class="text-2xl font-bold text-black">{{ Number(totalCreditBillAmount || 0).toFixed(2) }} LKR</p>
+        </div>
+      </div>
+      <!-- Credit Bill Collected -->
+      <div
+        class="py-6 flex flex-col justify-center items-center border-2 border-[#10B981] w-full space-y-8 rounded-2xl bg-[#10B98166] shadow-lg transform transition-transform duration-300 hover:-translate-y-4"
+      >
+        <div class="flex flex-col items-center justify-center">
+          <h2 class="text-xl font-extrabold tracking-wide text-black uppercase">
+            Credit Bill Collected
+          </h2>
+        </div>
+        <div class="flex flex-col items-center justify-center">
+          <p class="text-2xl font-bold text-black">{{ Number(creditBillCollected || 0).toFixed(2) }} LKR</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Charts Section -->
     <div class="flex md:flex-row flex-col items-center justify-center w-full h-full md:space-x-4 md:space-y-0 space-y-4">
       <!-- Chart 1 -->
@@ -1184,6 +1214,11 @@ const props = defineProps({
   totalReturnAmount: { type: Number, default: 0 },
   totalReturnQuantity: { type: Number, default: 0 },
   grossSalesAmount: { type: Number, default: 0 },
+  // Credit bill props
+  totalCreditBillAmount: { type: Number, default: 0 },
+  creditBillCollected: { type: Number, default: 0 },
+  creditBillPayments: { type: Array, default: () => [] },
+  outstandingCreditBills: { type: Number, default: 0 },
 });
 
 const totalPrice = computed(() => {
@@ -1547,9 +1582,6 @@ const downloadPaintOrdersPDF = () => {
   // Save the PDF
   doc.save("Paint_Orders_Sales_Report.pdf");
 };
-
-
-
 
 const downloadPDFTableReturnTable = () => {
   // Map the return items data with calculations

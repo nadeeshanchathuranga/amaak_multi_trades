@@ -9,6 +9,7 @@ use App\Models\SaleItem;
 use App\Models\ReturnItem;
 use App\Models\StockTransaction;
 use App\Models\Expense;
+use App\Models\CreditBillPayment;
 use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -358,23 +359,58 @@ $todaySalesCount = count($todaySales);
     // - Exchanges create positive quantity sale_items (positive revenue, positive cost)
     // - Profit = SUM((price * qty) - (cost * qty)) automatically accounts for all
     
-    $totalSaleAmount = $sales->sum('total_amount');
+    // Calculate sales amount excluding unpaid credit bills
+    // Only include: 1) Cash/Card sales, 2) Credit bill payments actually collected
+    $cashSalesAmount = $sales->where('payment_method', '!=', 'credit bill')->sum('total_amount');
+    
+    // Calculate credit bill collections (payments received)
+    $creditBillCollected = 0;
+    if ($startDate && $endDate) {
+        $creditBillCollected = CreditBillPayment::whereBetween('payment_date', [$startDate, $endDate])
+            ->sum('payment_amount');
+    } else {
+        $creditBillCollected = CreditBillPayment::sum('payment_amount');
+    }
+    
+    // Total sales amount = cash sales + credit bill payments actually received
+    $totalSaleAmount = $cashSalesAmount + $creditBillCollected;
+    
     $totalDiscount = $sales->sum('discount');
     $customeDiscount = $sales->sum('custom_discount');
     
-    // Calculate total cost from sale_items using stored cost_price
-    // This gives accurate cost per item at time of sale
+    // Calculate total cost only for cash sales and proportional cost for credit bill collections
     $totalCost = 0;
+    
+    // Add cost for cash/card sales (exclude credit bill sales)
     foreach ($sales as $sale) {
-        foreach ($sale->saleItems as $item) {
-            // Use cost_price if available, otherwise fall back to product's current cost
-            $itemCost = $item->cost_price > 0 ? $item->cost_price : ($item->product->cost_price ?? 0);
-            $totalCost += $item->quantity * $itemCost;
+        if ($sale->payment_method !== 'credit bill') {
+            foreach ($sale->saleItems as $item) {
+                $itemCost = $item->cost_price > 0 ? $item->cost_price : ($item->product->cost_price ?? 0);
+                $totalCost += $item->quantity * $itemCost;
+            }
         }
     }
     
-    // Calculate net profit: revenue - cost
-    // Negative quantities automatically subtract from totals
+    // Add proportional cost for credit bill payments collected
+    $totalCreditBillSalesAmount = $sales->where('payment_method', 'credit bill')->sum('total_amount');
+    if ($totalCreditBillSalesAmount > 0) {
+        $creditBillCostRatio = 0;
+        foreach ($sales as $sale) {
+            if ($sale->payment_method === 'credit bill') {
+                foreach ($sale->saleItems as $item) {
+                    $itemCost = $item->cost_price > 0 ? $item->cost_price : ($item->product->cost_price ?? 0);
+                    $creditBillCostRatio += ($item->quantity * $itemCost);
+                }
+            }
+        }
+        // Add proportional cost based on how much of credit bills have been collected
+        if ($totalCreditBillSalesAmount > 0) {
+            $collectionRatio = $creditBillCollected / $totalCreditBillSalesAmount;
+            $totalCost += $creditBillCostRatio * $collectionRatio;
+        }
+    }
+    
+    // Calculate net profit: actual revenue received - corresponding costs
     $netProfit = $totalSaleAmount - $totalCost;
     
     // For transparency, calculate gross sales (before any negative adjustments)
@@ -397,7 +433,36 @@ $todaySalesCount = count($todaySales);
     $profitAfterExpenses = $netProfit + (isset($paintOrderSummary['total_profit']) ? $paintOrderSummary['total_profit'] : 0) - $totalExpenses;
 
     // =========================
-    // 12. Return to Vue via Inertia
+    // 12. Credit Bill Calculations
+    // =========================
+    
+    // Calculate total credit bill amount (original sales made on credit)
+    $totalCreditBillAmount = $sales->where('payment_method', 'credit bill')->sum('total_amount');
+    
+    // Calculate credit bill collections (payments received)
+    $creditBillCollected = 0;
+    if ($startDate && $endDate) {
+        $creditBillCollected = CreditBillPayment::whereBetween('payment_date', [$startDate, $endDate])
+            ->sum('payment_amount');
+    } else {
+        $creditBillCollected = CreditBillPayment::sum('payment_amount');
+    }
+    
+    // Calculate remaining unpaid credit bill amount
+    $totalRemainingCreditBills = DB::table('credit_bills')->sum('remaining_amount');
+    
+    // Get credit bill payments data with date filtering
+    $creditBillPaymentsQuery = CreditBillPayment::with(['creditBill.customer', 'user'])
+        ->orderBy('payment_date', 'desc');
+    
+    if ($startDate && $endDate) {
+        $creditBillPaymentsQuery->whereBetween('payment_date', [$startDate, $endDate]);
+    }
+    
+    $creditBillPayments = $creditBillPaymentsQuery->get();
+
+    // =========================
+    // 13. Return to Vue via Inertia
     // =========================
     return Inertia::render('Reports/Index', [
         'products' => $products,
@@ -428,6 +493,17 @@ $todaySalesCount = count($todaySales);
         'totalReturnAmount' => $totalReturnAmount,
         'totalReturnQuantity' => $totalReturnQuantity,
         'grossSalesAmount' => $grossSalesAmount,
+        // Credit bill data
+        'totalCreditBillAmount' => $totalRemainingCreditBills, // Show remaining unpaid amount
+        'creditBillCollected' => $creditBillCollected,
+        'creditBillPayments' => $creditBillPayments,
+        'outstandingCreditBills' => $totalRemainingCreditBills,
+        // Credit bill cards for dashboard
+        'creditBillCards' => [
+            'total_outstanding' => $totalRemainingCreditBills,
+            'total_collected' => $creditBillCollected,
+            'total_credit_bills' => $totalCreditBillAmount
+        ],
     ]);
 }
 
