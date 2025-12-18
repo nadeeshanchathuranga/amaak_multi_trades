@@ -382,7 +382,7 @@ const printReceipt = (history) => {
                   <td style="text-align: left; padding: 8px 4px;">
                     <b>${itemName}</b>
                     ${hasDiscount ? `<br><small style="background-color: #000; color: #fff; font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 4px;">
-                      ${(item.discount_type === 'percent' || item.discount_type === 'percentage' || item.discount_type === '%') ? Number(item.discount).toFixed(2) + '% off' : Number(item.discount).toFixed(2) + ' LKR off'}
+                      ${(item.discount_type === 'percent' || item.discount_type === 'percentage' || item.discount_type === '%' || item.apply_discount) ? Number(item.discount).toFixed(0) + '% off' : Number(item.discount).toFixed(2) + ' LKR off'}
                     </small>` : ''}
                   </td>
                   <td style="text-align: center; padding: 8px 4px;">${Math.abs(item.quantity)}${unitName ? ' ' + unitName : ''} × ${originalPrice.toFixed(2)}</td>
@@ -411,6 +411,14 @@ const printReceipt = (history) => {
         <div class="total-line">
           <span>Total</span>
           <span>${(Number(history.total_amount) || 0).toFixed(2)} LKR</span>
+        </div>
+        <div>
+          <span>Cash</span>
+          <span>${(Number(history.cash) || Number(history.total_amount) || 0).toFixed(2)} LKR</span>
+        </div>
+        <div style="font-weight: bold;">
+          <span>Balance</span>
+          <span>${((Number(history.cash) || Number(history.total_amount) || 0) - (Number(history.total_amount) || 0)).toFixed(2)} LKR</span>
         </div>
       </div>
 
