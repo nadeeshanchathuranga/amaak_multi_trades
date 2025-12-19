@@ -145,11 +145,19 @@
                   {{ formatDate(bill.due_date) }}
                 </td>
                 <td class="p-4 text-center border-t border-gray-200">
-                  <div class="inline-flex items-center w-full space-x-3">
+                  <div class="inline-flex items-center w-full space-x-2">
+                    <!-- View Button -->
+                    <button
+                      @click="openViewModal(bill)"
+                      class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                      title="View Payment History"
+                    >
+                      View
+                    </button>
                     <!-- Edit Button -->
                     <button
                       @click="viewDetails(bill.id)"
-                      class="px-4 py-2 bg-green-500 text-white rounded-lg"
+                      class="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                     >
                       Edit
                     </button>
@@ -179,6 +187,16 @@
   </div>
   <Footer />
 
+  <CreditBillViewModal
+    :selected-credit-bill="selectedCreditBillForView"
+    v-model:open="isViewModalOpen"
+  />
+
+  <CreditBillViewModal
+    :selected-credit-bill="selectedCreditBillForView"
+    v-model:open="isViewModalOpen"
+  />
+
   <CreditBillUpdateModel
     :creditBills="allCreditBills"
     :selected-credit-bill="selectedCreditBill"
@@ -199,6 +217,7 @@ import { Link, useForm, router } from "@inertiajs/vue3";
 import Header from "@/Components/custom/Header.vue";
 import Footer from "@/Components/custom/Footer.vue";
 import Banner from "@/Components/Banner.vue";
+import CreditBillViewModal from "@/Components/custom/CreditBillViewModal.vue";
 import CreditBillUpdateModel from "@/Components/custom/CreditBillUpdateModel.vue";
 import CreditBillDeleteModel from "@/Components/custom/CreditBillDeleteModel.vue";
 
@@ -214,9 +233,11 @@ const openDeleteModal = (bill) => {
   isDeleteModalOpen.value = true;
 };
 
+const isViewModalOpen = ref(false);
 const isEditModalOpen = ref(false);
 const isDeleteModalOpen = ref(false);
 const selectedCreditBill = ref(null);
+const selectedCreditBillForView = ref(null);
 
 // Methods
 const formatCurrency = (amount) => {
@@ -235,6 +256,12 @@ const formatDate = (date) => {
     day: 'numeric'
   })
 }
+
+const openViewModal = (bill) => {
+  console.log("Opening view modal for credit bill:", bill);
+  selectedCreditBillForView.value = bill;
+  isViewModalOpen.value = true;
+};
 
 const openEditModal = (bill) => {
   console.log("Opening edit modal for credit bill:", bill);

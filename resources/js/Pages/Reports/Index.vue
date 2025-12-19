@@ -1175,6 +1175,104 @@
 
 
 
+  <!-- Notification Toast -->
+  <div
+    v-if="showNotification"
+    :class="[
+      'fixed top-4 right-4 z-[60] transform transition-all duration-300 ease-in-out',
+      'max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto',
+      showNotification ? 'translate-x-0' : 'translate-x-full'
+    ]"
+  >
+    <div class="p-4">
+      <div class="flex items-start">
+        <div class="flex-shrink-0">
+          <!-- Success Icon -->
+          <svg
+            v-if="notificationType === 'success'"
+            class="h-6 w-6 text-green-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <!-- Error Icon -->
+          <svg
+            v-else-if="notificationType === 'error'"
+            class="h-6 w-6 text-red-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L5.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+          </svg>
+          <!-- Warning Icon -->
+          <svg
+            v-else-if="notificationType === 'warning'"
+            class="h-6 w-6 text-yellow-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L5.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+          </svg>
+          <!-- Info Icon -->
+          <svg
+            v-else
+            class="h-6 w-6 text-blue-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        <div class="ml-3 w-0 flex-1 pt-0.5">
+          <p :class="[
+            'text-sm font-medium',
+            notificationType === 'success' ? 'text-green-800' : '',
+            notificationType === 'error' ? 'text-red-800' : '',
+            notificationType === 'warning' ? 'text-yellow-800' : '',
+            notificationType === 'info' ? 'text-blue-800' : ''
+          ]">
+            {{ notificationMessage }}
+          </p>
+        </div>
+        <div class="ml-4 flex-shrink-0 flex">
+          <button
+            @click="hideNotification"
+            class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <span class="sr-only">Close</span>
+            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Progress Bar -->
+    <div :class="[
+      'h-1 rounded-b-lg overflow-hidden',
+      notificationType === 'success' ? 'bg-green-200' : '',
+      notificationType === 'error' ? 'bg-red-200' : '',
+      notificationType === 'warning' ? 'bg-yellow-200' : '',
+      notificationType === 'info' ? 'bg-blue-200' : ''
+    ]">
+      <div 
+        :class="[
+          'h-full transition-all ease-linear duration-[4000ms]',
+          notificationType === 'success' ? 'bg-green-400' : '',
+          notificationType === 'error' ? 'bg-red-400' : '',
+          notificationType === 'warning' ? 'bg-yellow-400' : '',
+          notificationType === 'info' ? 'bg-blue-400' : ''
+        ]"
+        :style="{ width: showNotification ? '0%' : '100%' }"
+      ></div>
+    </div>
+  </div>
+
   <!-- Add In Cash Modal -->
   <div
     v-if="showAddCashModal"
@@ -1361,6 +1459,11 @@ const cashForm = ref({
   amount: '',
   note: ''
 });
+
+// Notification System
+const showNotification = ref(false);
+const notificationMessage = ref('');
+const notificationType = ref('success'); // 'success', 'error', 'warning', 'info'
 
 const products = ref(props.products);
 const monthlySalesData = ref(props.monthlySalesData);
@@ -2014,6 +2117,26 @@ const filterData = () => {
 };
 
 // Add In Cash Modal Methods
+// Notification methods
+const displayNotification = (message, type = 'info', duration = 4000) => {
+  notificationMessage.value = message;
+  notificationType.value = type;
+  showNotification.value = true;
+  
+  // Auto hide after duration
+  setTimeout(() => {
+    hideNotification();
+  }, duration);
+};
+
+const hideNotification = () => {
+  showNotification.value = false;
+  setTimeout(() => {
+    notificationMessage.value = '';
+    notificationType.value = 'info';
+  }, 300);
+};
+
 const closeModal = () => {
   showAddCashModal.value = false;
   cashForm.value = {
@@ -2025,7 +2148,7 @@ const closeModal = () => {
 const saveCash = async () => {
   try {
     if (!cashForm.value.amount || cashForm.value.amount <= 0) {
-      alert('Please enter a valid amount.');
+      displayNotification('Please enter a valid amount.', 'error');
       return;
     }
 
@@ -2035,17 +2158,16 @@ const saveCash = async () => {
     }, {
       onSuccess: () => {
         closeModal();
-        // You can add a success message here if needed
-        alert('Cash added successfully!');
+        displayNotification('Cash added successfully!', 'success');
       },
       onError: (errors) => {
         console.error('Error adding cash:', errors);
-        alert('Error adding cash. Please try again.');
+        displayNotification('Error adding cash. Please try again.', 'error');
       }
     });
   } catch (error) {
     console.error('Error saving cash:', error);
-    alert('Error adding cash. Please try again.');
+    displayNotification('Error adding cash. Please try again.', 'error');
   }
 };
 

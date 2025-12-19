@@ -18,7 +18,9 @@ class CreditBillController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        $allCreditBills = CreditBill::with(['customer', 'sale'])
+        $allCreditBills = CreditBill::with(['customer', 'sale', 'payments' => function($query) {
+                $query->with('user')->orderBy('created_at', 'desc');
+            }])
             ->orderBy('created_at', 'desc')
             ->get();
 

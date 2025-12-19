@@ -252,4 +252,7 @@ const getStatusClass = (status) => {
       return 'text-gray-400'
   }
 };
+
+
 </script>
+
