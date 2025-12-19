@@ -17,4 +17,16 @@ class Supplier extends Model
         'image',
 
     ];
+
+  public function products()
+    {
+        return $this->hasMany(Product::class);
+    }
+
+      public function payments()
+    {
+        return $this->hasMany(SupplierPayment::class);
+    }
+
+
 }

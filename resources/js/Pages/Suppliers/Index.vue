@@ -247,6 +247,41 @@
                     >
                       Delete
                     </button>
+
+                    <button
+                      :class="
+                        HasRole(['Admin'])
+                          ? 'px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition'
+                          : 'px-4 py-2 bg-yellow-400 text-white rounded-lg cursor-not-allowed'
+                      "
+                      :title="
+                        HasRole(['Admin'])
+                          ? ''
+                          : 'You do not have permission to view'
+                      "
+                      :disabled="!HasRole(['Admin'])"
+                      @click="
+                        () => {
+                          if (HasRole(['Admin'])) openViewModal(supplier);
+                        }
+                      "
+                    >
+                     Payments
+                    </button>
+                    
+                    <!-- Payment Report PDF -->
+                    <button
+                      :class="
+                        HasRole(['Admin'])
+                          ? 'px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition ml-2'
+                          : 'px-4 py-2 bg-indigo-400 text-white rounded-lg cursor-not-allowed ml-2'
+                      "
+                      :title="HasRole(['Admin']) ? 'Download payment history' : 'No permission'"
+                      :disabled="!HasRole(['Admin'])"
+                      @click="() => { if (HasRole(['Admin'])) downloadPaymentReport(supplier.id); }"
+                    >
+                      Report
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -280,11 +315,17 @@
     :selected-supplier="selectedSupplier"
   />
 
+
+    <SupplierViewModel
+  :supplier="selectedSupplier"
+  v-model:open="isViewModalOpen"
+/>
+
   <Footer />
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { useForm } from "@inertiajs/vue3";
 import { Link } from "@inertiajs/vue3";
 import { Head } from "@inertiajs/vue3";
@@ -293,6 +334,7 @@ import Footer from "@/Components/custom/Footer.vue";
 import SupplierCreateModel from "@/Components/custom/SupplierCreateModel.vue";
 import SupplierDeleteModel from "@/Components/custom/SupplierDeleteModel.vue";
 import SupplierUpdateModel from "@/Components/custom/SupplierUpdateModel.vue";
+import SupplierViewModel from "@/Components/custom/SupplierViewModel.vue";
 import Banner from "@/Components/Banner.vue";
 import { HasRole } from "@/Utils/Permissions";
 
@@ -312,22 +354,46 @@ const openDeleteModal = (supplier) => {
   isDeleteModalOpen.value = true;
 };
 
+const openViewModal = (supplier) => {
+  selectedSupplier.value = supplier;
+  isViewModalOpen.value = true;
+};
+
+const downloadPaymentReport = (supplierId) => {
+  // open in new tab so the browser can show the downloaded HTML/print dialog
+  window.open(`/suppliers/${supplierId}/payments/pdf`, '_blank');
+};
+
 const form = useForm({});
 
 const isCreateModalOpen = ref(false);
 const isEditModalOpen = ref(false);
 const isDeleteModalOpen = ref(false);
+const isViewModalOpen = ref(false);
 const selectedSupplier = ref(null);
 
-$(document).ready(function () {
-  let table = $("#SupplierTable").DataTable({
+let supplierDataTable = null;
+
+onMounted(async () => {
+  await nextTick();
+  if ($.fn.dataTable.isDataTable("#SupplierTable")) {
+    try {
+      supplierDataTable = $("#SupplierTable").DataTable();
+      supplierDataTable.destroy();
+    } catch (e) {
+      // swallow error if already destroyed
+    }
+  }
+ 
+
+  supplierDataTable = $("#SupplierTable").DataTable({
     dom: "Bfrtip",
     pageLength: 10,
+    order: [[0, "desc"]],   // 👈 DESC order by id
     buttons: [],
     columnDefs: [
-      // Adjust targets if needed, e.g., skip "Actions" column
       {
-        targets: [1, 2, 3, 5], // Adjust this based on the current column index of "Image" or other columns
+        targets: [1, 2, 3, 5],
         searchable: false,
         orderable: false,
       },
@@ -341,7 +407,22 @@ $(document).ready(function () {
     language: {
       search: "",
     },
-  });
+});
+
+
+
+
+});
+
+onBeforeUnmount(() => {
+  if ($.fn.dataTable.isDataTable("#SupplierTable") && supplierDataTable) {
+    try {
+      supplierDataTable.destroy(true);
+      supplierDataTable = null;
+    } catch (e) {
+      // ignore
+    }
+  }
 });
 </script>
 

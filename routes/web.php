@@ -82,6 +82,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('products', ProductController::class);
     Route::resource('suppliers', SupplierController::class);
     Route::get('suppliers/{id}/products', [SupplierController::class, 'showProducts'])->name('suppliers.products');
+    Route::get('suppliers/{id}/summary', [SupplierController::class, 'paymentSummary'])->name('suppliers.summary');
+    Route::get('suppliers/{id}/payments/pdf', [SupplierController::class, 'downloadPaymentsPDF'])->name('suppliers.payments.pdf');
+     Route::post('/supplier-payment', [SupplierController::class, 'supplierPayment'])
+    ->name('supplier.payment');
     Route::post('suppliers/{supplier}', [SupplierController::class, 'update']);
     Route::post('products/{product}', [ProductController::class, 'update']);
     Route::post('products-variant', [ProductController::class, 'productVariantStore'])->name('productVariant');
