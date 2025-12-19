@@ -110,9 +110,6 @@
                 <th class="p-4 font-semibold tracking-wide text-left uppercase">
                   Status
                 </th>
-                <th class="p-4 font-semibold tracking-wide text-left uppercase">
-                  Due Date
-                </th>
                 <th
                   class="p-4 font-semibold tracking-wide text-center uppercase"
                 >
@@ -140,9 +137,6 @@
                 </td>
                 <td class="p-4 border-t border-gray-200">
                   {{ bill.payment_status?.toUpperCase() || "N/A" }}
-                </td>
-                <td class="p-4 border-t border-gray-200">
-                  {{ formatDate(bill.due_date) }}
                 </td>
                 <td class="p-4 text-center border-t border-gray-200">
                   <div class="inline-flex items-center w-full space-x-2">
@@ -290,7 +284,7 @@ $(document).ready(function () {
     buttons: [],
     columnDefs: [
       {
-        targets: [6],
+        targets: [5],
         searchable: false,
         orderable: false,
       },

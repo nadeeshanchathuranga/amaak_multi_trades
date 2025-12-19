@@ -29,7 +29,6 @@ class CreditBillController extends Controller
         $stats = [
             'total_pending' => CreditBill::pending()->sum('remaining_amount'),
             'total_partial' => CreditBill::partial()->sum('remaining_amount'),
-            'overdue_count' => CreditBill::overdue()->count(),
             'total_bills' => CreditBill::count(),
         ];
 

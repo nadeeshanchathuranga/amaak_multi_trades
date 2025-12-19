@@ -17,7 +17,6 @@ class CreditBill extends Model
         'paid_amount',
         'remaining_amount',
         'payment_status',
-        'due_date',
         'notes'
     ];
 
@@ -25,7 +24,6 @@ class CreditBill extends Model
         'total_amount' => 'decimal:2',
         'paid_amount' => 'decimal:2',
         'remaining_amount' => 'decimal:2',
-        'due_date' => 'date',
     ];
 
     // Relationships
@@ -60,10 +58,7 @@ class CreditBill extends Model
         return $query->where('payment_status', 'paid');
     }
 
-    public function scopeOverdue($query)
-    {
-        return $query->where('due_date', '<', now())->whereIn('payment_status', ['pending', 'partial']);
-    }
+    // Overdue scope removed - due dates not used
 
     // Methods to handle payment updates
     public function updatePaymentAmounts()
