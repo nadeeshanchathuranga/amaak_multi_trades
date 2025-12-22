@@ -248,40 +248,27 @@
                       Delete
                     </button>
 
-                    <button
+                   
+
+                    <!-- Payments Button -->
+                    <Link
+                      :href="`/suppliers/${supplier.id}/payments`"
                       :class="
                         HasRole(['Admin'])
-                          ? 'px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition'
-                          : 'px-4 py-2 bg-yellow-400 text-white rounded-lg cursor-not-allowed'
+                          ? 'px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition ml-2'
+                          : 'px-4 py-2 bg-yellow-400 text-white rounded-lg cursor-not-allowed ml-2'
                       "
                       :title="
                         HasRole(['Admin'])
-                          ? ''
+                          ? 'View payment history'
                           : 'You do not have permission to view'
                       "
                       :disabled="!HasRole(['Admin'])"
-                      @click="
-                        () => {
-                          if (HasRole(['Admin'])) openViewModal(supplier);
-                        }
-                      "
                     >
-                     Payments
-                    </button>
+                     Invoice
+                    </Link>
                     
-                    <!-- Payment Report PDF -->
-                    <button
-                      :class="
-                        HasRole(['Admin'])
-                          ? 'px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition ml-2'
-                          : 'px-4 py-2 bg-indigo-400 text-white rounded-lg cursor-not-allowed ml-2'
-                      "
-                      :title="HasRole(['Admin']) ? 'Download payment history' : 'No permission'"
-                      :disabled="!HasRole(['Admin'])"
-                      @click="() => { if (HasRole(['Admin'])) downloadPaymentReport(supplier.id); }"
-                    >
-                      Report
-                    </button>
+                    
                   </div>
                 </td>
               </tr>

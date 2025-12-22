@@ -30,11 +30,11 @@
           >
             <!-- Title -->
             <DialogTitle class="text-2xl font-semibold text-center text-blue-500">
-              Supplier Payment Summary
+              Supplier Invoice & Payment Management
             </DialogTitle>
 
             <!-- Supplier Info -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm mb-6">
               <div>
                 <label class="text-gray-400">Supplier Name:</label>
                 <p class="text-lg font-bold text-white">
@@ -42,80 +42,175 @@
                 </p>
               </div>
 
-              <!-- Final Due (before this payment) -->
               <div>
-                <label class="text-gray-400">Final Due:</label>
-                <p class="text-green-400 text-lg font-bold">
-                  <!-- show due before this payment -->
-                  LKR {{ originalDue.toFixed(2) }}
+                <label class="text-gray-400">Total Outstanding:</label>
+                <p class="text-red-400 text-lg font-bold">
+                  LKR {{ (currentDue || 0).toFixed(2) }}
                 </p>
               </div>
             </div>
 
-            <!-- Product List -->
-            <div>
-              <label class="text-gray-400">Products:</label>
-
-              <div class="max-h-64 overflow-y-auto">
-                <ul class="list-disc pl-5 mt-2 space-y-1 text-sm text-white">
-                  <li
-                    v-for="product in supplier?.products || []"
-                    :key="product.id"
-                  >
-                    {{ product.name }} – LKR
-                    {{ parseFloat(product.cost_price || 0).toFixed(2) }}
-                    × {{ product.total_quantity }}
-                  </li>
-                  <li
-                    v-if="!supplier?.products?.length"
-                    class="italic text-gray-500"
-                  >
-                    No products available
-                  </li>
-                </ul>
+            <!-- Action Selection -->
+            <div class="mb-6">
+              <label class="block text-gray-400 text-sm font-medium mb-3">
+                Select Action:
+              </label>
+              <div class="flex gap-4">
+                <button
+                  type="button"
+                  @click="actionType = 'create_invoice'"
+                  :class="actionType === 'create_invoice' ? 'bg-blue-600' : 'bg-gray-600'"
+                  class="px-4 py-2 rounded-lg text-white font-medium transition"
+                >
+                  Create Invoice
+                </button>
+                <button
+                  type="button"
+                  @click="actionType = 'make_payment'"
+                  :class="actionType === 'make_payment' ? 'bg-green-600' : 'bg-gray-600'"
+                  class="px-4 py-2 rounded-lg text-white font-medium transition"
+                >
+                  Make Payment
+                </button>
               </div>
+            </div>
 
-              <!-- Total Cost -->
-              <div
-                v-if="supplier?.products?.length"
-                class="mt-3 text-right text-base font-semibold text-green-400"
-              >
-                Total: LKR {{ totalCost.toFixed(2) }}
+            <!-- Existing Invoices -->
+            <div v-if="invoices && invoices.length > 0" class="mb-6">
+              <h3 class="text-lg font-semibold text-white mb-3">Existing Invoices</h3>
+              <div class="max-h-48 overflow-y-auto space-y-2">
+                <div 
+                  v-for="invoice in invoices" 
+                  :key="invoice.id"
+                  class="bg-gray-700 p-3 rounded-lg text-sm"
+                >
+                  <div class="flex justify-between items-center">
+                    <div>
+                      <p class="text-white font-medium">{{ invoice.invoice_number }}</p>
+                      <p class="text-gray-400">{{ invoice.description || 'No description' }}</p>
+                    </div>
+                    <div class="text-right">
+                      <p class="text-white">LKR {{ parseFloat(invoice.total_amount).toFixed(2) }}</p>
+                      <p class="text-gray-400">Paid: LKR {{ parseFloat(invoice.paid_amount).toFixed(2) }}</p>
+                      <p :class="invoice.status === 'paid' ? 'text-green-400' : 'text-red-400'">{{ invoice.status.toUpperCase() }}</p>
+                    </div>
+                  </div>
+                  
+                  <!-- Payment History -->
+                  <div v-if="invoice.payments && invoice.payments.length > 0" class="mt-2 pt-2 border-t border-gray-600">
+                    <p class="text-xs text-gray-400 mb-1">Payment History:</p>
+                    <div class="space-y-1 max-h-20 overflow-y-auto">
+                      <div 
+                        v-for="payment in invoice.payments" 
+                        :key="payment.id" 
+                        class="flex justify-between text-xs"
+                      >
+                        <span class="text-gray-300">{{ new Date(payment.created_at).toLocaleDateString() }}</span>
+                        <span class="text-green-400">LKR {{ parseFloat(payment.pay).toFixed(2) }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    v-if="actionType === 'make_payment' && invoice.status !== 'paid'"
+                    @click="selectInvoice(invoice)"
+                    class="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                  >
+                    Pay This Invoice
+                  </button>
+                </div>
               </div>
             </div>
 
             <!-- Payment Form -->
             <form @submit.prevent="submit" class="space-y-6">
-              <!-- Pay Input -->
+              <!-- Invoice Number -->
               <div>
-                <label for="pay" class="block text-sm text-gray-400 mb-1">
-                  Pay:
+                <label class="block text-gray-400 text-sm font-medium mb-2">
+                  Invoice Number {{ actionType === 'create_invoice' ? '*' : '' }}
+                </label>
+                <input
+                  v-model="form.invoice_number"
+                  type="text"
+                  :placeholder="actionType === 'create_invoice' ? 'Enter new invoice number' : 'Enter invoice number (optional)'"
+                  :required="actionType === 'create_invoice'"
+                  :readonly="selectedInvoice !== null"
+                  class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <div v-if="form.errors.invoice_number" class="mt-2 text-red-400 text-sm">
+                  {{ form.errors.invoice_number }}
+                </div>
+              </div>
+
+              <!-- Description -->
+              <div>
+                <label class="block text-gray-400 text-sm font-medium mb-2">
+                  Description
+                </label>
+                <textarea
+                  v-model="form.description"
+                  placeholder="Enter description (optional)"
+                  rows="3"
+                  :readonly="selectedInvoice !== null"
+                  class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                ></textarea>
+                <div v-if="form.errors.description" class="mt-2 text-red-400 text-sm">
+                  {{ form.errors.description }}
+                </div>
+              </div>
+
+              <!-- Total Invoice Amount (only for create_invoice) -->
+              <div v-if="actionType === 'create_invoice'">
+                <label class="block text-gray-400 text-sm font-medium mb-2">
+                  Total Invoice Amount *
+                </label>
+                <input
+                  v-model="form.total_cost"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="Enter total invoice amount"
+                  required
+                  class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <div v-if="form.errors.total_cost" class="mt-2 text-red-400 text-sm">
+                  {{ form.errors.total_cost }}
+                </div>
+              </div>
+
+              <!-- Payment Amount (only for make_payment) -->
+              <div v-if="actionType === 'make_payment'">
+                <label class="block text-gray-400 text-sm font-medium mb-2">
+                  Payment Amount *
                 </label>
                 <input
                   v-model="form.pay"
                   type="number"
-                  min="1"
                   step="0.01"
-                  id="pay"
-                  required
+                  min="0"
                   placeholder="Enter payment amount"
-                  class="w-full rounded-lg border border-gray-600 bg-white text-black px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  :max="selectedInvoice ? selectedInvoice.remaining_amount : undefined"
+                  required
+                  class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-                <p v-if="form.errors.pay" class="text-sm text-red-500 mt-1">
+                <div v-if="form.errors.pay" class="mt-2 text-red-400 text-sm">
                   {{ form.errors.pay }}
-                </p>
+                </div>
+                <div v-if="selectedInvoice" class="mt-2 text-sm text-gray-400">
+                  Remaining: LKR {{ parseFloat(selectedInvoice.remaining_amount || 0).toFixed(2) }}
+                </div>
               </div>
 
-              <!-- Balance -->
-              <div>
+              <!-- Outstanding After Payment (only for make_payment) -->
+              <div v-if="actionType === 'make_payment'" class="bg-gray-800 px-4 py-3 rounded-lg border border-gray-600">
                 <label class="block text-sm text-gray-400 mb-1">
-                  Balance (Due):
+                  Outstanding After Payment:
                 </label>
                 <p
-                  :class="currentDue < 0 ? 'text-red-400' : 'text-yellow-300'"
+                  :class="(remainingDue || 0) < 0 ? 'text-red-400' : 'text-green-400'"
                   class="text-lg font-semibold"
                 >
-                  LKR {{ currentDue.toFixed(2) }}
+                  LKR {{ (remainingDue || 0).toFixed(2) }}
                 </p>
               </div>
 
@@ -123,10 +218,12 @@
               <div class="flex justify-between pt-4">
                 <button
                   type="submit"
-                  :disabled="Number(form.pay) <= 0 || currentDue < 0"
+                  :disabled="isSubmitting || 
+                    (actionType === 'create_invoice' && (!form.invoice_number || !form.total_cost || Number(form.total_cost) <= 0)) ||
+                    (actionType === 'make_payment' && (!form.pay || Number(form.pay) <= 0 || (remainingDue || 0) < 0))"
                   class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Submit Payment
+                  {{ actionType === 'create_invoice' ? 'Create Invoice' : 'Submit Payment' }}
                 </button>
 
                 <button
@@ -146,155 +243,163 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, onMounted } from 'vue'
+import { useForm } from '@inertiajs/vue3'
 import {
   Dialog,
   DialogPanel,
   DialogTitle,
   TransitionChild,
   TransitionRoot,
-} from "@headlessui/vue";
-import { ref, reactive, computed, watch } from "vue";
-import axios from "axios";
+} from '@headlessui/vue'
 
-// Emits
-const emit = defineEmits(["update:open"]);
-
-// Props
 const props = defineProps({
   supplier: {
     type: Object,
-    default: () => ({}),
+    required: true,
   },
   open: {
     type: Boolean,
     default: false,
   },
-});
+})
 
-// Modal reset key
-const modalKey = ref(Date.now());
+const emit = defineEmits(['update:open', 'submitted'])
 
-// Form state
-const form = reactive({
-  pay: "",
-  errors: {},
-});
+// Data
+const actionType = ref('create_invoice')
+const isSubmitting = ref(false)
+const invoices = ref([])
+const selectedInvoice = ref(null)
 
-// server-provided paid total (fetched when modal opens)
-const serverPaid = ref(null);
+const form = useForm({
+  supplier_id: props.supplier?.id || null,
+  invoice_number: '',
+  description: '',
+  total_cost: '',
+  pay: '',
+  action_type: 'create_invoice',
+  invoice_id: null,
+})
 
-// Watch modal open to reset form when closing
-watch(
-  () => props.open,
-  (val) => {
-    if (!val) {
-      modalKey.value = Date.now();
-      form.pay = "";
-      form.errors = {};
-      serverPaid.value = null;
-    }
-    // when opening, fetch latest payments for supplier
-    if (val && props.supplier?.id) {
-      fetchSupplierSummary(props.supplier.id);
-    }
-  }
-);
-
-// Total product cost = sum of cost_price * total_quantity
-const totalCost = computed(() => {
-  if (!props.supplier?.products?.length) return 0;
-  return props.supplier.products.reduce((sum, product) => {
-    const cost = parseFloat(product.cost_price || 0);
-    const qty = parseFloat(product.total_quantity || 0);
-    return sum + cost * qty;
-  }, 0);
-});
-
-// Already paid (coming from backend as aggregated value on supplier)
-// e.g. in controller: Supplier::withSum('payments as pay', 'pay')
-const alreadyPaid = computed(() => {
-  if (serverPaid.value !== null) return parseFloat(serverPaid.value || 0);
-  return parseFloat(props.supplier?.pay || 0);
-});
-
-// Current due after the amount typed in this modal
+// Computed properties
 const currentDue = computed(() => {
-  const payNow = parseFloat(form.pay || 0);
-  return totalCost.value - (alreadyPaid.value + payNow);
-});
+  return props.supplier && typeof props.supplier.due_amount === 'number'
+    ? props.supplier.due_amount
+    : 0
+})
 
-// Original due (before this payment)
-const originalDue = computed(() => {
-  return totalCost.value - alreadyPaid.value;
-});
-
-// Fetch supplier payment summary from server
-const fetchSupplierSummary = async (supplierId) => {
-  try {
-    const res = await axios.get(`/suppliers/${supplierId}/summary`);
-    serverPaid.value = parseFloat(res.data.paid_total || 0);
-    // optionally override totalCost if you want server trust
-    // but we keep computing totalCost from products on frontend
-  } catch (e) {
-    // ignore — keep using client data
-    serverPaid.value = null;
-  }
-};
-
-// Submit form
-const submit = async () => {
-  const payAmount = parseFloat(form.pay || 0);
-
-  if (isNaN(payAmount) || payAmount <= 0) {
-    form.errors = { pay: 'Enter a valid payment amount greater than 0.' };
-    return;
-  }
-
-  if (currentDue.value < 0) {
-    alert('Payment exceeds due balance.');
-    return;
-  }
-
-  try {
-    if (!props.supplier || !props.supplier.id) {
-      alert('No supplier selected.');
-      return;
+const remainingDue = computed(() => {
+  if (actionType.value === 'make_payment') {
+    const payAmount = Number(form.pay) || 0
+    if (selectedInvoice.value) {
+      return selectedInvoice.value.remaining_amount - payAmount
     }
-    await axios.post(
-      "/supplier-payment",
-      {
-        supplier_id: props.supplier.id,
-        pay: payAmount,
-        total: totalCost.value,
-      },
-      {
-        headers: { Accept: 'application/json' },
-      }
-    );
+    return (currentDue.value || 0) - payAmount
+  }
+  return 0
+})
 
-    alert('Payment submitted successfully!');
-    form.pay = '';
-    form.errors = {};
-    window.location.reload();
+// Methods
+const loadInvoices = async () => {
+  try {
+    const response = await fetch(`/suppliers/${props.supplier.id}/invoices`)
+    if (response.ok) {
+      const data = await response.json()
+      invoices.value = data.invoices || []
+    }
   } catch (error) {
-    if (error.response?.data?.errors) {
-      form.errors = error.response.data.errors;
-    } else if (error.response?.data?.message) {
-      alert(error.response.data.message);
-    } else {
-      alert('Something went wrong!');
+    console.error('Error loading invoices:', error)
+  }
+}
+
+const selectInvoice = (invoice) => {
+  selectedInvoice.value = invoice
+  form.invoice_number = invoice.invoice_number
+  form.description = invoice.description
+  form.invoice_id = invoice.id
+  form.pay = ''
+}
+
+const resetForm = () => {
+  form.reset()
+  form.supplier_id = props.supplier?.id || null
+  form.action_type = actionType.value
+  form.invoice_id = null
+  selectedInvoice.value = null
+}
+
+const submit = async () => {
+  isSubmitting.value = true
+  
+  // Set the action type
+  form.action_type = actionType.value
+  
+  // Clear unused fields based on action type
+  if (actionType.value === 'create_invoice') {
+    // For invoice creation, clear payment amount
+    form.pay = ''
+    form.invoice_id = null
+  } else if (actionType.value === 'make_payment') {
+    // For payments, clear total cost and set invoice ID if selected
+    form.total_cost = ''
+    if (selectedInvoice.value) {
+      form.invoice_id = selectedInvoice.value.id
     }
   }
-};
 
-// Optional sound
-const playClickSound = () => {
-  const clickSound = new Audio("/sounds/click-sound.mp3");
-  clickSound.play();
-};
+  form.post('/suppliers/payment', {
+    onSuccess: (page) => {
+      resetForm()
+      emit('submitted')
+      if (actionType.value === 'create_invoice') {
+        // After creating invoice, switch to payment mode and reload invoices
+        actionType.value = 'make_payment'
+        loadInvoices()
+      }
+    },
+    onError: (errors) => {
+      console.error('Form submission errors:', errors)
+    },
+    onFinish: () => {
+      isSubmitting.value = false
+    },
+  })
+}
 
 const handleCancel = () => {
-  playClickSound();
-  emit('update:open', false);
-};
+  resetForm()
+  actionType.value = 'create_invoice'
+  emit('update:open', false)
+}
+
+// Watchers
+watch(
+  () => actionType.value,
+  () => {
+    resetForm()
+    if (actionType.value === 'make_payment') {
+      loadInvoices()
+    }
+  }
+)
+
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (isOpen) {
+      loadInvoices()
+    } else {
+      resetForm()
+      actionType.value = 'create_invoice'
+    }
+  }
+)
+
+// Lifecycle
+onMounted(() => {
+  if (props.open) {
+    loadInvoices()
+  }
+})
 </script>

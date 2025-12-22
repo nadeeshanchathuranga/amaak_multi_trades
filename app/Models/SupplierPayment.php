@@ -11,6 +11,9 @@ class SupplierPayment extends Model
 
       protected $fillable = [
         'supplier_id',
+        'supplier_invoice_id',
+        'invoice_number',
+        'description',
         'total_cost',
         'pay',
         'status', 
@@ -22,12 +25,18 @@ class SupplierPayment extends Model
         return $this->belongsTo(Supplier::class);
     }
 
+    public function supplierInvoice()
+    {
+        return $this->belongsTo(SupplierInvoice::class);
+    }
+
     /**
      * Accessor for balance if you want dynamic calculation
      */
     public function getBalanceAttribute()
     {
-        return $this->total_cost - $this->pay;
+        $totalCost = $this->total_cost ?? 0;
+        return $totalCost - $this->pay;
     }
 
     /**

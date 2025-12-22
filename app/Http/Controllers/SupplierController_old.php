@@ -5,8 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Supplier;
-use App\Models\SupplierPayment;
-use App\Models\SupplierInvoice; 
+use App\Models\SupplierPayment; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
@@ -15,28 +14,28 @@ use Inertia\Inertia;
 
 
 
-class SupplierController extends Controller
+class SupplierController_old extends Controller
 {
  
 
 
   public function index()
     {
-        // Get all suppliers with their invoices and payment summary
-        $allsuppliers = Supplier::with('invoices')->orderBy('id', 'desc')->get()->map(function ($supplier) {
-            // Calculate payment summary for each supplier from invoices
-            $totalOutstanding = $supplier->invoices->sum('remaining_amount');
-            $totalInvoiceAmount = $supplier->invoices->sum('total_amount');
-            $paidTotal = $supplier->invoices->sum('paid_amount');
-            
-            // Add payment summary to supplier object
-            $supplier->total_outstanding = $totalOutstanding;
-            $supplier->total_invoice_amount = $totalInvoiceAmount;
-            $supplier->paid_total = $paidTotal;
-            $supplier->balance = $totalOutstanding;
-            
-            return $supplier;
-        });
+
+  
+
+
+
+        $allsuppliers = Supplier::with([
+   
+    'products' => function ($query) {
+        $query->select('id', 'supplier_id', 'name', 'cost_price', 'total_quantity');
+    }
+])
+->orderBy('id', 'desc')
+->get();
+
+
 
         return Inertia::render('Suppliers/Index', [
             'allsuppliers' => $allsuppliers,
@@ -175,83 +174,63 @@ class SupplierController extends Controller
 
 
 
-    public function supplierPayment(Request $request)
-    {
-        if (!Gate::allows('hasRole', ['Admin'])) {
-            abort(403, 'Unauthorized');
-        }
-        
-        // Basic validation
-        $request->validate([
-            'supplier_id' => 'required|exists:suppliers,id',
-            'action_type' => 'required|in:create_invoice,make_payment',
+ 
+
+public function supplierPayment(Request $request)
+{
+
+ 
+    $validated = $request->validate([
+        'supplier_id' => 'required|exists:suppliers,id',
+        'pay'         => 'required|numeric|min:0',
+        'total'       => 'nullable|numeric|min:0', // total bill for this supplier
+    ]);
+
+    $supplier = Supplier::findOrFail($validated['supplier_id']);
+
+    // Get latest known total_cost for this supplier
+    $existingTotalCost = SupplierPayment::where('supplier_id', $supplier->id)
+        ->max('total_cost');
+
+    // If client sends a new total, use that; else keep existing or 0
+    $totalCost = $validated['total'] ?? $existingTotalCost ?? 0;
+
+    // How much has already been paid before this payment?
+    $alreadyPaid = SupplierPayment::where('supplier_id', $supplier->id)
+        ->sum('pay');
+
+    // New overall paid amount
+    $newPaidTotal = $alreadyPaid + $validated['pay'];
+
+    // Compute balance
+    $balance = max(0, $totalCost - $newPaidTotal);
+
+    // Decide string status for the overall bill after this payment
+    // 'pending' = partial, 'complete' = fully paid
+    $status = $balance <= 0 ? 'complete' : 'pending';
+
+    // Persist payment in a transaction
+    $payment = DB::transaction(function () use ($supplier, $totalCost, $validated, $status) {
+        return SupplierPayment::create([
+            'supplier_id' => $supplier->id,
+            'total_cost'  => $totalCost,
+            'pay'         => $validated['pay'],
+            'status'      => $status, // now integer, no truncation
         ]);
+    });
 
-        // Conditional validation based on action type
-        if ($request->action_type === 'create_invoice') {
-            $validated = $request->validate([
-                'supplier_id' => 'required|exists:suppliers,id',
-                'invoice_number' => 'required|string|max:255',
-                'total_cost' => 'required|numeric|min:0.01',
-                'action_type' => 'required|in:create_invoice,make_payment',
-            ]);
-        } else {
-            $validated = $request->validate([
-                'supplier_id' => 'required|exists:suppliers,id',
-                'invoice_number' => 'nullable|string|max:255',
-                'description' => 'required|string|max:255', // Payment method is required
-                'pay' => 'required|numeric|min:0.01',
-                'action_type' => 'required|in:create_invoice,make_payment',
-                'invoice_id' => 'nullable|exists:supplier_invoices,id',
-            ]);
-        }
-
-        $supplier = Supplier::findOrFail($validated['supplier_id']);
-
-        if ($validated['action_type'] === 'create_invoice') {
-            // Create new invoice
-            $invoice = SupplierInvoice::create([
-                'supplier_id' => $supplier->id,
-                'invoice_number' => $validated['invoice_number'],
-                'total_amount' => $validated['total_cost'],
-                'status' => 'pending'
-            ]);
-
-            return redirect()->route('suppliers.payments', $supplier->id)
-                ->with('message', 'Invoice created successfully');
-        } else {
-            // Make payment against existing invoice or create payment without invoice
-            $payment = DB::transaction(function () use ($validated, $supplier) {
-                $payment = SupplierPayment::create([
-                    'supplier_id' => $supplier->id,
-                    'supplier_invoice_id' => $validated['invoice_id'] ?? null,
-                    'invoice_number' => $validated['invoice_number'] ?? null,
-                    'description' => $validated['description'] ?? null,
-                    'total_cost' => $validated['total_cost'] ?? null,
-                    'pay' => $validated['pay'],
-                    'status' => 'complete'
-                ]);
-
-                // Update invoice if payment is against an invoice
-                if ($validated['invoice_id']) {
-                    $invoice = SupplierInvoice::findOrFail($validated['invoice_id']);
-                    $invoice->paid_amount += $validated['pay'];
-                    $invoice->updateStatus();
-                }
-
-                return $payment;
-            });
-
-            // Calculate updated totals
-            $totalOutstanding = SupplierInvoice::where('supplier_id', $supplier->id)
-                ->sum('remaining_amount');
-            $totalPaid = SupplierPayment::where('supplier_id', $supplier->id)
-                ->sum('pay');
-
-            return redirect()->route('suppliers.payments', $supplier->id)
-                ->with('message', 'Payment recorded successfully');
-        }
-    }
+    return response()->json([
+        'message'       => 'Payment recorded successfully',
+        'supplier'      => $supplier,
+        'payment'       => $payment,
+        'summary' => [
+            'total_cost' => $totalCost,
+            'paid_total' => $newPaidTotal,
+            'balance'    => $balance,
+            'status'     => $status, // 'pending'/'complete'
+        ],
+    ]);
+}
 
 
     /**
@@ -260,15 +239,17 @@ class SupplierController extends Controller
      */
     public function paymentSummary($id)
     {
-        $supplier = Supplier::with(['invoices', 'payments'])->findOrFail($id);
+        $supplier = Supplier::findOrFail($id);
 
-        // Calculate total outstanding from invoices
-        $totalOutstanding = $supplier->invoices->sum('remaining_amount');
+        // Calculate total outstanding from payments with total_cost
+        $totalOutstanding = SupplierPayment::where('supplier_id', $supplier->id)
+            ->whereNotNull('total_cost')
+            ->sum('total_cost');
         
-        // Sum of all payments made
-        $paidTotal = $supplier->payments->sum('pay');
+        // Sum of payments already recorded
+        $paidTotal = SupplierPayment::where('supplier_id', $supplier->id)->sum('pay');
 
-        $balance = max(0, $totalOutstanding);
+        $balance = max(0, $totalOutstanding - $paidTotal);
         $status = $balance <= 0 ? 'complete' : 'pending';
 
         return response()->json([
@@ -277,18 +258,6 @@ class SupplierController extends Controller
             'paid_total' => $paidTotal,
             'balance' => $balance,
             'status' => $status,
-            'invoices' => $supplier->invoices->map(function ($invoice) {
-                return [
-                    'id' => $invoice->id,
-                    'invoice_number' => $invoice->invoice_number,
-                    'description' => $invoice->description,
-                    'total_amount' => $invoice->total_amount,
-                    'paid_amount' => $invoice->paid_amount,
-                    'remaining_amount' => $invoice->remaining_amount,
-                    'status' => $invoice->status,
-                    'invoice_date' => $invoice->invoice_date->format('Y-m-d')
-                ];
-            })
         ]);
     }
 
@@ -299,10 +268,10 @@ class SupplierController extends Controller
     public function downloadPaymentsPDF($id)
     {
         try {
-            // eager-load payments for calculations
+            // eager-load payments and products for calculations
             $supplier = Supplier::with(['payments' => function ($q) {
                 $q->orderBy('created_at', 'desc');
-            }])->findOrFail($id);
+            }, 'products'])->findOrFail($id);
 
             $payments = $supplier->payments;
 
@@ -355,72 +324,6 @@ class SupplierController extends Controller
         }
     }
 
-    /**
-     * Get invoices for a specific supplier
-     */
-    public function getInvoices($supplierId)
-    {
-        $invoices = SupplierInvoice::with(['payments' => function ($query) {
-            $query->orderBy('created_at', 'desc');
-        }])
-        ->where('supplier_id', $supplierId)
-        ->orderBy('created_at', 'desc')
-        ->get();
 
-        return response()->json([
-            'invoices' => $invoices
-        ]);
-    }
-
-    /**
-     * Show supplier payments page
-     */
-    public function showPayments($id)
-    {
-        $supplier = Supplier::findOrFail($id);
-        
-        // Get invoices with their payments
-        $invoices = SupplierInvoice::where('supplier_id', $id)
-            ->with('payments')
-            ->orderBy('created_at', 'desc')
-            ->get();
-        
-        // Get all payments for this supplier
-        $payments = SupplierPayment::where('supplier_id', $id)
-            ->orderBy('created_at', 'desc')
-            ->get();
-        
-        // Calculate summary
-        $totalInvoiceAmount = $invoices->sum('total_amount');
-        $totalOutstanding = $invoices->sum('remaining_amount');
-        $paidTotal = $payments->sum('pay');
-        $balance = $totalOutstanding;
-        
-        // Calculate payment method totals
-        $cashTotal = $payments->where('description', 'Cash')->sum('pay');
-        $cardTotal = $payments->where('description', 'Card')->sum('pay');
-        $checkTotal = $payments->where('description', 'Check')->sum('pay');
-        
-        $summary = [
-            'total_invoice_amount' => $totalInvoiceAmount,
-            'total_outstanding' => $totalOutstanding,
-            'paid_total' => $paidTotal,
-            'balance' => $balance,
-        ];
-        
-        $paymentTotals = [
-            'cash' => $cashTotal,
-            'card' => $cardTotal,
-            'check' => $checkTotal,
-        ];
-        
-        return Inertia::render('Suppliers/Payments', [
-            'supplier' => $supplier,
-            'invoices' => $invoices,
-            'payments' => $payments,
-            'summary' => $summary,
-            'paymentTotals' => $paymentTotals,
-        ]);
-    }
 
 }
