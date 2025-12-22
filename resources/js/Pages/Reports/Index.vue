@@ -513,6 +513,36 @@
       </div>
     </div>
 
+    <!-- Payment Methods Section -->
+    <div class="grid w-full md:grid-cols-2 grid-cols-1 gap-4">
+      <!-- Cash Payment Total -->
+      <div
+        class="py-6 flex flex-col justify-center items-center border-2 border-[#10B981] w-full space-y-8 rounded-2xl bg-[#10B98166] shadow-lg transform transition-transform duration-300 hover:-translate-y-4"
+      >
+        <div class="flex flex-col items-center justify-center">
+          <h2 class="text-xl font-extrabold tracking-wide text-black uppercase">
+            Cash Payment
+          </h2>
+        </div>
+        <div class="flex flex-col items-center justify-center">
+          <p class="text-2xl font-bold text-black">{{ (cashPaymentTotal || 0).toLocaleString() }} LKR</p>
+        </div>
+      </div>
+      <!-- Card Payment Total -->
+      <div
+        class="py-6 flex flex-col justify-center items-center border-2 border-[#3B82F6] w-full space-y-8 rounded-2xl bg-[#3B82F666] shadow-lg transform transition-transform duration-300 hover:-translate-y-4"
+      >
+        <div class="flex flex-col items-center justify-center">
+          <h2 class="text-xl font-extrabold tracking-wide text-black uppercase">
+            Card Payment
+          </h2>
+        </div>
+        <div class="flex flex-col items-center justify-center">
+          <p class="text-2xl font-bold text-black">{{ (cardPaymentTotal || 0).toLocaleString() }} LKR</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Charts Section -->
     <div class="flex md:flex-row flex-col items-center justify-center w-full h-full md:space-x-4 md:space-y-0 space-y-4">
       <!-- Chart 1 -->
@@ -1408,6 +1438,11 @@ const props = defineProps({
   // In Cash props
   totalInCash: { type: Number, default: 0 },
   cashPlusSales: { type: Number, default: 0 },
+  // Payment method totals
+  cashPaymentTotal: { type: Number, default: 0 },
+  creditPaymentTotal: { type: Number, default: 0 },
+  cardPaymentTotal: { type: Number, default: 0 },
+  otherPaymentTotal: { type: Number, default: 0 },
 });
 
 const totalPrice = computed(() => {

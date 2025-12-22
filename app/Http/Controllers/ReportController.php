@@ -278,6 +278,14 @@ $todaySalesCount = count($todaySales);
         })->toArray();
 
     // =========================
+    // 7.1. Separate Cash and Credit Payment Totals
+    // =========================
+    $cashPaymentTotal = $sales->where('payment_method', 'cash')->sum('total_amount');
+    $creditPaymentTotal = $sales->where('payment_method', 'credit bill')->sum('total_amount');
+    $cardPaymentTotal = $sales->where('payment_method', 'card')->sum('total_amount');
+    $otherPaymentTotal = $sales->whereNotIn('payment_method', ['cash', 'credit bill', 'card'])->sum('total_amount');
+
+    // =========================
     // 8. Employee Sales Summary
     // =========================
     $employeeSalesSummary = [];
@@ -492,6 +500,10 @@ $todaySalesCount = count($todaySales);
         'todaySalesTotal' => $todaySalesTotal,
         'todaySalesCount' => $todaySalesCount,
         'paymentMethodTotals'=> $paymentMethodTotals,
+        'cashPaymentTotal' => $cashPaymentTotal,
+        'creditPaymentTotal' => $creditPaymentTotal,
+        'cardPaymentTotal' => $cardPaymentTotal,
+        'otherPaymentTotal' => $otherPaymentTotal,
         'stockTransactionsReturn'=>$stockTransactionsReturn,
         'paintOrderSummary' => $paintOrderSummary,
         'paintOrderDetails' => $paintOrderDetails,
