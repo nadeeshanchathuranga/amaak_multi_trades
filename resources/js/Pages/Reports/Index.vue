@@ -781,6 +781,22 @@
         Top Sales Table
       </h2>
 
+      <!-- Payment Method Filter -->
+      <div class="flex justify-center pb-4">
+        <div class="flex items-center space-x-4">
+          <label class="text-sm font-medium text-gray-700">Filter by Payment Method:</label>
+          <select 
+            v-model="topSalesPaymentFilter" 
+            class="min-w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">All Payment Methods</option>
+            <option v-for="method in topSalesPaymentMethods" :key="method" :value="method">
+              {{ method }}
+            </option>
+          </select>
+        </div>
+      </div>
+
   <!-- Buttons and Total Price in a Single Row -->
   <div class="flex justify-between items-center pb-4">
     <!-- Left: Buttons -->
@@ -806,8 +822,11 @@
     >
       <h2 class="text-lg font-extrabold text-black uppercase">Total Price:
       <span class="text-xl font-bold text-black">
-        {{ totalPrice.toLocaleString() }} LKR
+        {{ filteredTopSalesTotal.toLocaleString() }} LKR
       </span> </h2>
+      <p v-if="topSalesPaymentFilter" class="text-sm text-gray-700 mt-1">
+        Filtered by: {{ topSalesPaymentFilter }} ({{ filteredTopSales.length }} transactions)
+      </p>
     </div>
   </div>
   <div class="bg-white rounded-2xl shadow overflow-hidden">
@@ -832,7 +851,7 @@
 
       <tbody class="text-[12px] font-medium">
         <tr
-          v-for="(sale, index) in sales"
+          v-for="(sale, index) in filteredTopSales"
           :key="sale.id"
           class="border-b transition duration-200 hover:bg-gray-100"
         >
@@ -872,6 +891,22 @@
       Today Sales Table
     </h2>
 
+    <!-- Payment Method Filter -->
+    <div class="flex justify-center pb-4">
+      <div class="flex items-center space-x-4">
+        <label class="text-sm font-medium text-gray-700">Filter by Payment Method:</label>
+        <select 
+          v-model="todaySalesPaymentFilter" 
+          class="min-w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="">All Payment Methods</option>
+          <option v-for="method in todaySalesPaymentMethods" :key="method" :value="method">
+            {{ method }}
+          </option>
+        </select>
+      </div>
+    </div>
+
     <!-- Buttons and Total Section -->
     <div class="flex justify-between items-center pb-4">
       <!-- Left: Buttons -->
@@ -887,9 +922,12 @@
       <!-- Right: Summary -->
       <div class="py-3 px-6 border-2 border-orange-600 rounded-xl bg-orange-400 shadow-lg text-center">
         <h2 class="text-lg font-extrabold text-black uppercase">
-          Total: <span class="text-xl font-bold text-black">{{ props.todaySalesTotal.toLocaleString() }} LKR</span>
+          Total: <span class="text-xl font-bold text-black">{{ filteredTodaySalesTotal.toLocaleString() }} LKR</span>
         </h2>
-        <p class="text-sm font-medium text-black">{{ props.todaySalesCount }} Transactions</p>
+        <p class="text-sm font-medium text-black">{{ filteredTodaySalesCount }} Transactions</p>
+        <p v-if="todaySalesPaymentFilter" class="text-xs text-gray-700 mt-1">
+          Filtered by: {{ todaySalesPaymentFilter }}
+        </p>
       </div>
     </div>
 
@@ -913,7 +951,7 @@
 
           <tbody class="text-[12px] font-medium">
             <tr
-              v-for="(sale, index) in todaySalesData"
+              v-for="(sale, index) in filteredTodaySales"
               :key="sale.id"
               class="border-b transition duration-200 hover:bg-gray-100"
             >
@@ -939,9 +977,9 @@
              
                 <td class="p-3 text-center">{{ sale.time }}</td>
             </tr>
-            <tr v-if="todaySalesData.length === 0">
-              <td colspan="6" class="p-8 text-center text-gray-500 italic">
-                No sales recorded for today
+            <tr v-if="filteredTodaySales.length === 0">
+              <td colspan="7" class="p-8 text-center text-gray-500 italic">
+                {{ todaySalesPaymentFilter ? `No sales found for payment method: ${todaySalesPaymentFilter}` : 'No sales recorded for today' }}
               </td>
             </tr>
           </tbody>
@@ -956,6 +994,8 @@
       <h2 class="text-2xl font-semibold text-slate-700 text-center pb-4">
         Monthly Sales  Table
       </h2>
+
+       
 
   <!-- Buttons and Total Price in a Single Row -->
   <div class="flex justify-between items-center pb-4">
@@ -1457,6 +1497,50 @@ const totalSalesAmount = computed(() => {
   }, 0);
 });
 
+// Filtered sales computed properties
+const filteredTopSales = computed(() => {
+  if (!topSalesPaymentFilter.value) return sales.value;
+  return sales.value.filter(sale => sale.payment_method === topSalesPaymentFilter.value);
+});
+
+const filteredTodaySales = computed(() => {
+  if (!todaySalesPaymentFilter.value) return todaySalesData.value;
+  return todaySalesData.value.filter(sale => sale.payment_method === todaySalesPaymentFilter.value);
+});
+
+const filteredMonthlySales = computed(() => {
+  // Monthly sales doesn't have individual payment methods, so we'll return the original data
+  return monthlySalesData.value;
+});
+
+// Filtered totals
+const filteredTopSalesTotal = computed(() => {
+  return filteredTopSales.value.reduce((sum, sale) => {
+    return sum + (parseFloat(sale.total_amount) || 0);
+  }, 0);
+});
+
+const filteredTodaySalesTotal = computed(() => {
+  return filteredTodaySales.value.reduce((sum, sale) => {
+    return sum + (parseFloat(sale.total_amount) || 0);
+  }, 0);
+});
+
+const filteredTodaySalesCount = computed(() => {
+  return filteredTodaySales.value.length;
+});
+
+// Get unique payment methods for filter options
+const topSalesPaymentMethods = computed(() => {
+  const methods = [...new Set(sales.value.map(sale => sale.payment_method).filter(method => method))];
+  return methods.sort();
+});
+
+const todaySalesPaymentMethods = computed(() => {
+  const methods = [...new Set(todaySalesData.value.map(sale => sale.payment_method).filter(method => method))];
+  return methods.sort();
+});
+
 const searchCode = ref('');
 const batchProducts = ref([]);
 const batchTotalQuantity = ref(0);
@@ -1487,6 +1571,11 @@ const fetchProductByCode = async () => {
 // Date filters
 const startDate = ref(props.startDate);
 const endDate = ref(props.endDate);
+
+// Payment Method Filters
+const topSalesPaymentFilter = ref('');
+const todaySalesPaymentFilter = ref('');
+const monthlySalesPaymentFilter = ref('');
 
 // Add In Cash Modal
 const showAddCashModal = ref(false);
