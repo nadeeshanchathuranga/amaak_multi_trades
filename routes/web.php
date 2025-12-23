@@ -113,6 +113,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/add-in-cash', [ReportController::class, 'addInCash'])->name('reports.addInCash');
     Route::get('/batch-management/search', [ReportController::class, 'searchByCode']);
     Route::resource('customers', CustomerController::class);
+    Route::get('/api/customer/by-contact/{contactNumber}', [CustomerController::class, 'getByContact']);
     Route::resource('colors', ColorController::class);
     Route::resource('coupons', CouponController::class);
     Route::resource('sizes', SizeController::class);

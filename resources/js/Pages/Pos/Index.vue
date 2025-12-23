@@ -36,6 +36,7 @@
                             <div v-if="customer" class="flex gap-2 mb-3 text-black">
                                 <input v-model="customer.contactNumber" type="text"
                                     placeholder="Enter Customer Contact Number"
+                                    @blur="fetchCustomerByContact"
                                     class="flex-grow px-4 py-4 text-black placeholder-black bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
                             </div>
                             <div v-if="customer" class="text-black">
@@ -46,7 +47,7 @@
                             <div class="text-black">
                                 <select v-model="employee_id" id="employee_id"
                                     class="w-full px-4 py-4 text-black placeholder-black bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="" disabled selected>Select an Employee (Optional)</option>
+                                    <option value="" disabled selected>Select an Employee</option>
                                     <option v-for="employee in allemployee" :key="employee.id" :value="employee.id">
                                         {{ employee.name }}
                                     </option>
@@ -576,6 +577,32 @@ const refreshData = () => {
     });
 };
 
+// Fetch customer data by contact number
+const fetchCustomerByContact = async () => {
+    if (!customer.value.contactNumber || customer.value.contactNumber.length < 10) {
+        return; // Don't search for incomplete phone numbers
+    }
+
+    try {
+        const response = await axios.get(`/api/customer/by-contact/${customer.value.contactNumber}`);
+        if (response.data.success && response.data.customer) {
+            // Auto-fill name and email if customer exists
+            customer.value.name = response.data.customer.name || customer.value.name;
+            customer.value.email = response.data.customer.email || customer.value.email;
+            
+            // Show success message or indicator (optional)
+            console.log('Customer found and details auto-filled');
+        }
+    } catch (error) {
+        // If customer not found, just log it (don't show error to user)
+        if (error.response?.status === 404) {
+            console.log('Customer not found with this contact number');
+        } else {
+            console.error('Error fetching customer:', error);
+        }
+    }
+};
+
 const removeProduct = (id) => {
     products.value = products.value.filter((item) => item.id !== id);
 };
@@ -631,6 +658,13 @@ const orderId = computed(() => {
 });
 
 const submitOrder = async () => {
+    // Check if employee is selected
+    if (!employee_id.value) {
+        isAlertModalOpen.value = true;
+        message.value = "Please select an employee before processing the order";
+        return;
+    }
+
     // Check balance for regular sales
     if (balance.value < 0 && products.value.length > 0) {
         isAlertModalOpen.value = true;

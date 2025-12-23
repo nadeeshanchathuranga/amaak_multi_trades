@@ -93,4 +93,37 @@ class CustomerController extends Controller
         $customer->delete();
         return redirect()->route('customers.index')->banner('Customer Deleted successfully.');
     }
+
+    /**
+     * Get customer by contact number for POS auto-fill
+     */
+    public function getByContact($contactNumber)
+    {
+        try {
+            $customer = Customer::where('phone', $contactNumber)->first();
+            
+            if ($customer) {
+                return response()->json([
+                    'success' => true,
+                    'customer' => [
+                        'id' => $customer->id,
+                        'name' => $customer->name,
+                        'email' => $customer->email,
+                        'phone' => $customer->phone,
+                        'address' => $customer->address,
+                    ]
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Customer not found'
+                ], 404);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching customer data'
+            ], 500);
+        }
+    }
 }
