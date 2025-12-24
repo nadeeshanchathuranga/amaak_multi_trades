@@ -399,7 +399,7 @@
 
 
 
-      <Link href="/expenses" v-if="HasRole(['Admin', 'Manager'])">
+      <Link href="/expenses" v-if="HasRole(['Admin', 'Manager', 'Operator'])">
         <div class="dashboard-card bg-[#2E86C6]">
           <div class="card-content">
             <div class="icon-container">
