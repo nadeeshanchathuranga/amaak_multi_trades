@@ -180,23 +180,28 @@ class PosController extends Controller
             if ($request->input('customer.contactNumber') || $request->input('customer.name') || $request->input('customer.email')) {
 
                 $phone = $request->input('customer.countryCode') . $request->input('customer.contactNumber');
-                $customer = Customer::where('email', $request->input('customer.email'))->first();
-                $customer1 = Customer::where('phone', $phone)->first();
-
-                if ($customer) {
-                    $email = '';
-                } else {
-                    $email = $request->input('customer.email');
+                
+                // First, try to find existing customer by email
+                $customer = null;
+                if ($request->input('customer.email')) {
+                    $customer = Customer::where('email', $request->input('customer.email'))->first();
+                }
+                
+                // If not found by email, try to find by phone
+                if (!$customer && $phone) {
+                    $customer = Customer::where('phone', $phone)->first();
+                }
+                
+                // If not found by email or phone, try to find by name
+                if (!$customer && $request->input('customer.name')) {
+                    $customer = Customer::where('name', $request->input('customer.name'))->first();
                 }
 
-                if ($customer1) {
-                    $phone = '';
-                }
-
-                if (!empty($phone) || !empty($email) || !empty($request->input('customer.name'))) {
+                // If no existing customer found, create a new one
+                if (!$customer) {
                     $customer = Customer::create([
                         'name' => $request->input('customer.name'),
-                        'email' => $email,
+                        'email' => $request->input('customer.email', ''),
                         'phone' => $phone,
                         'address' => $request->input('customer.address', ''), // Optional address
                         'member_since' => now()->toDateString(), // Current date
@@ -353,23 +358,21 @@ class PosController extends Controller
 
             }
 
-            // Create credit bill entry if payment method is "credit bill"
+            // Create or update credit bill entry if payment method is "credit bill"
             if ($request->input('paymentMethod') === 'credit bill') {
                 try {
-                    CreditBill::create([
-                        'sale_id' => $sale->id,
-                        'customer_id' => $customer ? $customer->id : null,
-                        'order_id' => $request->input('orderid'),
-                        'total_amount' => $finalTotal,
-                        'paid_amount' => 0,
-                        'remaining_amount' => $finalTotal,
-                        'payment_status' => 'pending',
-                        'due_date' => now()->addDays(30), // Default 30 days from now
-                        'notes' => 'Auto-generated from POS sale',
-                    ]);
-                    \Log::info('Credit bill created successfully for sale ID: ' . $sale->id);
+                    $creditBill = CreditBill::updateOrCreateForCustomer(
+                        $customer ? $customer->id : null,
+                        $sale->id,
+                        $request->input('orderid'),
+                        $finalTotal
+                    );
+                    
+                    $action = $creditBill->wasRecentlyCreated ? 'created' : 'updated';
+                    \Log::info("Credit bill {$action} successfully for sale ID: {$sale->id}" . 
+                              ($customer ? ", customer ID: {$customer->id}" : ""));
                 } catch (\Exception $e) {
-                    \Log::error('Failed to create credit bill for sale ID: ' . $sale->id . '. Error: ' . $e->getMessage());
+                    \Log::error('Failed to create/update credit bill for sale ID: ' . $sale->id . '. Error: ' . $e->getMessage());
                     throw $e; // Re-throw to trigger transaction rollback
                 }
             }

@@ -58,6 +58,16 @@ class CreditBill extends Model
         return $query->where('payment_status', 'paid');
     }
 
+    public function scopeForCustomer($query, $customerId)
+    {
+        return $query->where('customer_id', $customerId);
+    }
+
+    public function scopeUnpaid($query)
+    {
+        return $query->whereIn('payment_status', ['pending', 'partial']);
+    }
+
     // Overdue scope removed - due dates not used
 
     // Methods to handle payment updates
@@ -102,5 +112,89 @@ class CreditBill extends Model
 
         // Update amounts (this will be handled by the payment model events)
         return $payment;
+    }
+
+    /**
+     * Update existing credit bill for customer or create new one
+     */
+    public static function updateOrCreateForCustomer($customerId, $saleId, $orderId, $amount, $notes = null)
+    {
+        if ($customerId) {
+            // Try to find existing unpaid credit bill for customer
+            $existingCreditBill = static::where('customer_id', $customerId)
+                ->whereIn('payment_status', ['pending', 'partial'])
+                ->first();
+
+            if ($existingCreditBill) {
+                // Update existing credit bill
+                $existingCreditBill->update([
+                    'total_amount' => $existingCreditBill->total_amount + $amount,
+                    'remaining_amount' => $existingCreditBill->remaining_amount + $amount,
+                    'notes' => ($existingCreditBill->notes ?: '') . 
+                              ($existingCreditBill->notes ? '; ' : '') . 
+                              ($notes ?: "Updated with sale ID: {$saleId} (Order: {$orderId})")
+                ]);
+                
+                return $existingCreditBill;
+            }
+        }
+        
+        // Create new credit bill if no existing one found or no customer
+        return static::create([
+            'sale_id' => $saleId,
+            'customer_id' => $customerId,
+            'order_id' => $orderId,
+            'total_amount' => $amount,
+            'paid_amount' => 0,
+            'remaining_amount' => $amount,
+            'payment_status' => 'pending',
+            'due_date' => now()->addDays(30),
+            'notes' => $notes ?: ($customerId ? 'Auto-generated from POS sale' : 'Auto-generated from POS sale (no customer)'),
+        ]);
+    }
+
+    /**
+     * Consolidate multiple credit bills for the same customer into one
+     */
+    public static function consolidateCustomerBills($customerId)
+    {
+        if (!$customerId) return null;
+        
+        $bills = static::where('customer_id', $customerId)
+            ->whereIn('payment_status', ['pending', 'partial'])
+            ->orderBy('created_at')
+            ->get();
+            
+        if ($bills->count() <= 1) {
+            return $bills->first();
+        }
+        
+        // Keep the oldest bill and merge others into it
+        $mainBill = $bills->first();
+        $totalAmount = $bills->sum('total_amount');
+        $totalRemaining = $bills->sum('remaining_amount');
+        $totalPaid = $bills->sum('paid_amount');
+        
+        // Collect all notes and order IDs
+        $allNotes = $bills->pluck('notes')->filter()->implode('; ');
+        $allOrderIds = $bills->pluck('order_id')->filter()->unique()->implode(', ');
+        
+        // Update the main bill
+        $mainBill->update([
+            'total_amount' => $totalAmount,
+            'remaining_amount' => $totalRemaining,
+            'paid_amount' => $totalPaid,
+            'notes' => "Consolidated bill - Orders: {$allOrderIds}. {$allNotes}"
+        ]);
+        
+        // Delete the other bills (except the main one)
+        static::where('customer_id', $customerId)
+            ->whereIn('payment_status', ['pending', 'partial'])
+            ->where('id', '!=', $mainBill->id)
+            ->delete();
+            
+        \Log::info("Consolidated {$bills->count()} credit bills into bill ID: {$mainBill->id} for customer ID: {$customerId}");
+        
+        return $mainBill;
     }
 }
