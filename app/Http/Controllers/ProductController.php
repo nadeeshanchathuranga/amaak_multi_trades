@@ -34,7 +34,7 @@ class ProductController extends Controller
 
     public function fetchProducts(Request $request)
 {
-    if (!Gate::allows('hasRole', ['Admin', 'Manager', 'Operator'])) {
+    if (!Gate::allows('hasRole', ['Admin', 'Manager', 'Operator', 'Cashier'])) {
         abort(403, 'Unauthorized');
     }
 
@@ -86,7 +86,7 @@ class ProductController extends Controller
      */
    public function index(Request $request)
 {
-    if (!Gate::allows('hasRole', ['Admin', 'Manager', 'Operator'])) {
+    if (!Gate::allows('hasRole', ['Admin', 'Manager', 'Operator', 'Cashier'])) {
         abort(403, 'Unauthorized');
     }
 
@@ -358,7 +358,7 @@ class ProductController extends Controller
      */
     public function show(Product $product)
     {
-        if (!Gate::allows('hasRole', ['Admin', 'Manager', 'Operator'])) {
+        if (!Gate::allows('hasRole', ['Admin', 'Manager', 'Operator', 'Cashier'])) {
             abort(403, 'Unauthorized');
         }
         // $categories = Category::all();
