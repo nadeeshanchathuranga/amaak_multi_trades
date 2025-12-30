@@ -417,7 +417,7 @@
         </div>
     </div>
     <PosSuccessModel :open="isSuccessModalOpen" @update:open="handleModalOpenUpdate" :products="products"
-        :employee="modalEmployee" :cashier="loggedInUser" :customer="modalCustomer" :orderid="actualOrderId || orderid" :cash="cash"
+        :employee="modalEmployee" :cashier="loggedInUser" :customer="modalCustomer" :orderid="actualOrderId || orderid.value" :cash="cash"
         :balance="balance" :subTotal="subtotal" :totalDiscount="totalDiscount" :total="total"
         :custom_discount_type="custom_discount_type"
         :custom_discount="custom_discount" :paymentMethod="selectedPaymentMethod" :kokoSurcharge="kokoSurcharge" />
@@ -443,9 +443,28 @@ import axios from "axios";
 import CurrencyInput from "@/Components/custom/CurrencyInput.vue";
 import SelectProductModel from "@/Components/custom/SelectProductModel.vue";
 import ProductAutoComplete from "@/Components/custom/ProductAutoComplete.vue";
-import { generateOrderId } from "@/Utils/Other.js";
+// import { generateOrderId } from "@/Utils/Other.js";
 
 // import ReturnSuccessModel from "@/Pages/ReturnItem/Index.vue";
+
+const props = defineProps({
+    loggedInUser: Object, // Using backend product name to avoid messing with selected products
+    allcategories: Array,
+    allemployee: Array,
+    colors: Array,
+    sizes: Array,
+    sales:Array,
+    saleItems: { // Add this prop
+        type: Array,
+        default: () => []
+    },
+    products: { // Add products prop
+        type: Array,
+        default: () => []
+    },
+    suppliers: { type: Array, default: () => [] },
+    initialOrderId: String,
+});
 
 const product = ref(null);
 const error = ref(null);
@@ -458,7 +477,7 @@ const cash = ref(0);
 const custom_discount = ref(0);
 const isSelectModalOpen = ref(false);
 const custom_discount_type = ref('percent');
-const orderid = computed(() => generateOrderId());
+const orderid = ref(props.initialOrderId);
 const actualOrderId = ref(''); // For storing actual order IDs
 
 const errorMessage = ref("");
@@ -520,24 +539,6 @@ const handleModalOpenUpdate = (newValue) => {
         refreshData();
     }
 };
-
-const props = defineProps({
-    loggedInUser: Object, // Using backend product name to avoid messing with selected products
-    allcategories: Array,
-    allemployee: Array,
-    colors: Array,
-    sizes: Array,
-    sales:Array,
-    saleItems: { // Add this prop
-        type: Array,
-        default: () => []
-    },
-    products: { // Add products prop
-        type: Array,
-        default: () => []
-    },
-    suppliers: { type: Array, default: () => [] },
-});
 
 const sales = ref([]);
 const selectedSaleEmployee = ref(null);

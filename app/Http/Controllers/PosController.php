@@ -23,11 +23,49 @@ use Inertia\Inertia;
 
 class PosController extends Controller
 {
+    /**
+     * Generate the next order ID in the format CH/YY.MM.DD/NNNN
+     * Thread-safe using database transactions
+     */
+    private function generateNextOrderId()
+    {
+        $prefix = "CH";
+        $today = now()->format('y.m.d'); // YY.MM.DD format
+        $datePattern = $prefix . '/' . $today . '/%';
+
+        return DB::transaction(function () use ($prefix, $today, $datePattern) {
+            // Get the latest order_id for today
+            $latestSale = Sale::where('order_id', 'like', $datePattern)
+                ->orderByRaw("CAST(SUBSTRING_INDEX(order_id, '/', -1) AS UNSIGNED) DESC")
+                ->lockForUpdate() // Prevent concurrent access
+                ->first();
+
+            $nextNumber = 1;
+            if ($latestSale && $latestSale->order_id) {
+                // Extract the number part and increment
+                $parts = explode('/', $latestSale->order_id);
+                if (count($parts) === 3) {
+                    $currentNumber = (int) $parts[2];
+                    $nextNumber = $currentNumber + 1;
+                }
+            }
+
+            // Format with leading zeros
+            $formattedNumber = str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+
+            return $prefix . '/' . $today . '/' . $formattedNumber;
+        });
+    }
+
     public function index(Request $request)
     {
         if (!Gate::allows('hasRole', ['Admin', 'Cashier', 'Operator'])) {
             abort(403, 'Unauthorized');
         }
+
+        // Generate the next order ID
+        $initialOrderId = $this->generateNextOrderId();
+
         $sales = Sale::with('customer','employee')->get();
         $saleItems  = SaleItem::with('product')->orderBy('created_at', 'desc')->get();
 
@@ -55,6 +93,7 @@ class PosController extends Controller
             'saleItems' => $saleItems,
             'products' => $products, // Add products to props
             'suppliers' => $suppliers,
+            'initialOrderId' => $initialOrderId,
         ]);
     }
 
