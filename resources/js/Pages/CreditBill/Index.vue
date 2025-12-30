@@ -127,7 +127,12 @@
                   {{ bill.customer?.name || "Walk-in Customer" }}
                 </td>
                 <td class="p-4 border-t border-gray-200">
-                  {{ bill.order_id || "N/A" }}
+                  <div v-if="bill.sales && bill.sales.length">
+                    <div v-for="sale in bill.sales" :key="sale.id" class="text-xs mb-1">
+                      {{ sale.order_id }} - {{ formatCurrency(sale.total_amount) }}
+                    </div>
+                  </div>
+                  <span v-else>N/A</span>
                 </td>
                 <td class="p-4 border-t border-gray-200">
                   {{ formatCurrency(bill.total_amount) }}

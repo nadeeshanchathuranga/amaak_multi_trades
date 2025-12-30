@@ -32,7 +32,7 @@
           >
             <!-- Modal Title -->
             <DialogTitle class="text-xl font-bold text-white mb-6">
-              Payment History - {{ selectedCreditBill?.order_id }}
+              Credit Bill Details - {{ selectedCreditBill?.order_id }}
             </DialogTitle>
 
             <!-- Credit Bill Summary -->
@@ -65,6 +65,30 @@
                     {{ selectedCreditBill?.payment_status }}
                   </span>
                 </div>
+              </div>
+            </div>
+
+            <!-- Orders Section -->
+            <div class="bg-gray-800 p-4 rounded-lg mb-6 text-left">
+              <h3 class="text-lg font-semibold text-white mb-4">Orders</h3>
+              <div v-if="selectedCreditBill?.sales && selectedCreditBill.sales.length > 0">
+                <table class="w-full text-sm text-gray-300">
+                  <thead>
+                    <tr class="border-b border-gray-600">
+                      <th class="text-left py-2">Order ID</th>
+                      <th class="text-left py-2">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="sale in selectedCreditBill.sales" :key="sale.id" class="border-b border-gray-700">
+                      <td class="py-2">{{ sale.order_id }}</td>
+                      <td class="py-2">{{ formatCurrency(sale.total_amount) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-else class="text-center text-gray-400 py-4">
+                No orders available.
               </div>
             </div>
 

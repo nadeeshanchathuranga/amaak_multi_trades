@@ -18,7 +18,7 @@ class CreditBillController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        $allCreditBills = CreditBill::with(['customer', 'sale', 'payments' => function($query) {
+        $allCreditBills = CreditBill::with(['customer', 'sales', 'payments' => function($query) {
                 $query->with('user')->orderBy('created_at', 'desc');
             }])
             ->orderBy('created_at', 'desc')
@@ -45,7 +45,7 @@ class CreditBillController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        $creditBill = CreditBill::with(['customer', 'sale.saleItems.product'])
+        $creditBill = CreditBill::with(['customer', 'sale.saleItems.product', 'sales'])
             ->findOrFail($id);
 
         return Inertia::render('CreditBill/Show', [

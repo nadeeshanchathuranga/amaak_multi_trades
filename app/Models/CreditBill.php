@@ -36,6 +36,11 @@ class CreditBill extends Model
     {
         return $this->belongsTo(Customer::class);
     }
+    public function sales()
+    {
+        return $this->hasMany(Sale::class, 'customer_id', 'customer_id')
+            ->where('payment_method', 'credit bill');
+    }
 
     public function payments()
     {
