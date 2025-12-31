@@ -60,6 +60,9 @@
    // Access the companyInfo from the page props
    const companyInfo = computed(() => page.props.companyInfo);
 
+   // Access the initialOrderId from the page props
+   const initialOrderIdFromPage = computed(() => page.props.initialOrderId);
+
    const handleClose = () => {
        console.log("Modal close prevented");
    };
@@ -85,6 +88,7 @@
        customer: Object,
        employee: Object,
        orderid: String,
+       initialOrderId: String,
        balance: Number,
        cash: Number,
        subTotal: Number,
@@ -313,7 +317,7 @@
            </div>
            <div>
              <p>Order No:</p>
-             <small>${props.orderid}</small>
+             <small>${props.orderid || props.initialOrderId || initialOrderIdFromPage.value}</small>
            </div>
          </div>
          <div class="info-row">
