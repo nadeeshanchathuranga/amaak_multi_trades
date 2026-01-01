@@ -7,6 +7,7 @@ use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
+use Illuminate\Validation\Rule;
 
 class CategoryController extends Controller
 {
@@ -140,7 +141,13 @@ class CategoryController extends Controller
             abort(403, 'Unauthorized');
         }
         $validated = $request->validate([
-            'name' => 'required|string|max:191|regex:/^[a-zA-Z\s]+$/|unique:categories,name',
+            'name' => [
+                'required',
+                'string',
+                'max:191',
+                'regex:/^[a-zA-Z\s]+$/',
+                Rule::unique('categories', 'name')->ignore($category->id),
+            ],
             'parent_id' => 'nullable|exists:categories,id',
             'commission' => 'nullable|numeric|min:0|max:100',
         ]);
