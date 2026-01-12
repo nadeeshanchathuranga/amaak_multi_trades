@@ -361,7 +361,8 @@
          ? Number(item.discounted_price)
          : originalPrice;
        const unitName = item.unit_id && item.unit ? item.unit.name : '';
-       const hasDiscount = item.discount > 0;
+       // Show discount badge only if discount > 0 AND apply_discount is true (opt-in)
+       const hasDiscount = item.discount > 0 && item.apply_discount === true;
 
        return `
     <tr style="border-bottom: 1px dashed #000;">

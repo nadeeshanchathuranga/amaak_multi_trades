@@ -159,6 +159,17 @@ class PosController extends Controller
         $customer = null;
 
         $products = $request->input('products');
+        
+        // Normalize discount fields: only keep discount values when apply_discount === true
+        $normalizedProducts = collect($products)->map(function ($product) {
+            if (!isset($product['apply_discount']) || $product['apply_discount'] !== true || !isset($product['discount']) || $product['discount'] <= 0) {
+                // Force discount to zero if not explicitly enabled
+                $product['discount'] = 0;
+                $product['discount_type'] = null;
+            }
+            return $product;
+        })->all();
+        $products = $normalizedProducts;
       
         $returnItems = $request->input('return_items', []);
 

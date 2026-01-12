@@ -674,10 +674,18 @@ const submitOrder = async () => {
     }
 
     try {
+        // Normalize discount fields before submitting
+        // Only keep discount values when apply_discount === true
+        const normalizedProducts = products.value.map(item => ({
+            ...item,
+            discount: (item.apply_discount === true && item.discount > 0) ? item.discount : 0,
+            discount_type: (item.apply_discount === true && item.discount > 0) ? item.discount_type : null,
+        }));
+
         // Regular sale
         const response = await axios.post("/pos/submit", {
             customer: customer.value,
-            products: products.value,
+            products: normalizedProducts,
             employee_id: employee_id.value,
             paymentMethod: selectedPaymentMethod.value,
             userId: props.loggedInUser.id,
