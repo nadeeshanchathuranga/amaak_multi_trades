@@ -378,23 +378,11 @@ const printReceipt = (history) => {
   const companyData = props.companyInfo[0];
   const saleItems = Array.isArray(history.sale_items) ? history.sale_items : [];
   
-  // Calculate original subtotal (before ALL discounts)
-  const originalSubTotal = saleItems.reduce((sum, item) => {
-    // Get the stored price (already has item discount applied in DB)
-    const storedPrice = Number(item.unit_price || item.selling_price || 0);
-    const qty = Number(item.quantity || 0);
-    const discountValue = Number(item.discount || 0);
-    
-    // If item has discount, calculate back to original price
-    if (discountValue > 0) {
-      // The discount field might contain the total discount AMOUNT for the line item (not percentage)
-      // So: originalPrice = storedPrice + (discountAmount / quantity)
-      const discountPerItem = discountValue / qty;
-      const originalPrice = storedPrice + discountPerItem;
-      return sum + (originalPrice * qty);
-    }
-    return sum + (storedPrice * qty);
-  }, 0);
+  // Subtotal = total_amount + discount + custom_discount (from sales table)
+  const totalAmount = Number(history.total_amount) || 0;
+  const salesDiscount = Number(history.discount) || 0;
+  const customDiscount = Number(history.custom_discount) || 0;
+  const originalSubTotal = totalAmount + salesDiscount + customDiscount;
 
   const receiptHTML = `
   <!DOCTYPE html>
@@ -550,34 +538,23 @@ const printReceipt = (history) => {
           </thead>
           <tbody>
             ${saleItems.map(item => {
-              // The stored price already has item discount applied
-              const storedPrice = Number(item.unit_price || item.selling_price || 0);
+              const unitPrice = Number(item.unit_price || item.selling_price || 0);
               const unitName = item.unit?.name || item.product?.unit?.name || '';
-              const discountValue = Number(item.discount || 0);
+              const discountLKR = Number(item.discount || 0);
               const qty = Number(item.quantity || 0);
-              // Show discount badge if discount value exists (greater than 0)
-              const hasDiscount = discountValue > 0;
+              const hasDiscount = discountLKR > 0;
               const itemName = item.name || item.product?.name || "Item";
-              
-              // Calculate the discount percentage to display
-              // The discount field contains the total discount amount for the line
-              const discountPerItem = qty > 0 ? discountValue / qty : 0;
-              const originalPricePerItem = storedPrice + discountPerItem;
-              const discountPercent = originalPricePerItem > 0 ? (discountPerItem / originalPricePerItem) * 100 : 0;
-              
-              // This is the price to DISPLAY (after item discount)
-              const displayPrice = storedPrice;
-              const itemTotal = displayPrice * qty;
+              const itemTotal = unitPrice * qty;
 
               return `
                 <tr style="border-bottom: 1px dashed #000;">
                   <td style="text-align: left; padding: 8px 4px;">
                     <b>${itemName}</b>
                     ${hasDiscount ? `<br><small style="background-color: #000; color: #fff; font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 4px;">
-                      ${discountPercent.toFixed(2) + '% off'}
+                      ${discountLKR.toFixed(2)} LKR discount
                     </small>` : ''}
                   </td>
-                  <td style="text-align: center; padding: 8px 4px;">${Math.abs(qty)}${unitName ? ' ' + unitName : ''} × ${displayPrice.toFixed(2)}</td>
+                  <td style="text-align: center; padding: 8px 4px;">${Math.abs(qty)}${unitName ? ' ' + unitName : ''} × ${unitPrice.toFixed(2)}</td>
                   <td style="text-align: right; padding: 8px 4px;">${itemTotal.toFixed(2)}</td>
                 </tr>
               `;
@@ -593,28 +570,11 @@ const printReceipt = (history) => {
         </div>
         <div>
           <span>Discount</span>
-          <span>${(Number(history.discount) || 0).toFixed(2)} LKR</span>
+          <span>${salesDiscount.toFixed(2)} LKR</span>
         </div>
         <div>
           <span>Custom Discount</span>
-          <span>
-            ${(() => {
-              const customDiscountValue = Number(history.custom_discount) || 0;
-              const customDiscountType = history.custom_discount_type || 'percent';
-              
-              // If type is percent, the stored value is the calculated amount in LKR
-              // Need to reverse calculate to get the original percentage
-              if (customDiscountType === 'percent') {
-                // Custom discount is applied to the ORIGINAL subtotal (before item discounts)
-                const percentValue = originalSubTotal > 0 
-                  ? (customDiscountValue / originalSubTotal) * 100 
-                  : customDiscountValue;
-                return percentValue.toFixed(2) + ' %';
-              } else {
-                return customDiscountValue.toFixed(2) + ' LKR';
-              }
-            })()}
-          </span>
+          <span>${(Number(history.custom_discount) || 0).toFixed(2)} LKR</span>
         </div>
         <div class="total-line">
           <span>Total</span>
@@ -633,7 +593,7 @@ const printReceipt = (history) => {
       <div class="footer" style="text-align:center; margin-top:10px;">
         <p>THANK YOU COME AGAIN</p>
         <p class="italic">Let the quality define its own standards</p>
-        <p style="font-weight: bold;">Powered by JAAN Network Ltd.</p>
+        <p style="font-weight: bold;">Powered by JAAN Network Ltd1.</p>
       </div>
     </div>
   </body>
