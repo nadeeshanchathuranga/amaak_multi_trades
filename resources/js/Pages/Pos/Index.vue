@@ -680,6 +680,8 @@ const submitOrder = async () => {
             ...item,
             discount: (item.apply_discount === true && item.discount > 0) ? item.discount : 0,
             discount_type: (item.apply_discount === true && item.discount > 0) ? item.discount_type : null,
+            apply_discount: item.apply_discount === true ? true : false,
+            discounted_price: item.discounted_price || item.selling_price,
         }));
 
         // Regular sale

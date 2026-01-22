@@ -182,8 +182,10 @@ class PosController extends Controller
         }, 0);
         // $returnItems = ReturnItem::with('product', 'customer', 'sale')->orderBy('created_at', 'desc')->get();
         $productDiscounts = collect($products)->reduce(function ($carry, $product) {
-            if (isset($product['discount']) && $product['discount'] > 0 && isset($product['apply_discount']) && $product['apply_discount'] != false) {
-                $discountAmount = ($product['selling_price'] - $product['discounted_price']) * $product['quantity'];
+            if (isset($product['discount']) && $product['discount'] > 0 && isset($product['apply_discount']) && $product['apply_discount'] === true) {
+                // Use the discounted price from frontend or calculate it
+                $discountedPrice = isset($product['discounted_price']) ? $product['discounted_price'] : $product['selling_price'];
+                $discountAmount = ($product['selling_price'] - $discountedPrice) * $product['quantity'];
                 return $carry + $discountAmount;
             }
             return $carry;
@@ -277,14 +279,24 @@ class PosController extends Controller
 
             ]);
 
-            // Calculate the discount per item proportionally based on their total price
+            // Calculate the discount per item based only on items with apply_discount === true
             $itemDiscountMap = [];
-            if ($totalDiscount > 0 && $totalAmount > 0) {
-                foreach ($products as $product) {
-                    $itemTotal = $product['quantity'] * $product['selling_price'];
-                    $itemDiscountShare = ($itemTotal / $totalAmount) * $totalDiscount;
-                    $itemDiscountMap[$product['id']] = $itemDiscountShare;
+            foreach ($products as $product) {
+                $itemDiscount = 0;
+                
+                // Only calculate discount if apply_discount is true and discount exists
+                if (isset($product['apply_discount']) && $product['apply_discount'] === true && isset($product['discount']) && $product['discount'] > 0) {
+                    // Calculate discount based on product's own discount, not total discount
+                    if (isset($product['discount_type']) && $product['discount_type'] === 'fixed') {
+                        // Fixed discount amount
+                        $itemDiscount = $product['discount'] * $product['quantity'];
+                    } else {
+                        // Percentage discount
+                        $itemDiscount = ($product['selling_price'] * $product['discount'] / 100) * $product['quantity'];
+                    }
                 }
+                
+                $itemDiscountMap[$product['id']] = $itemDiscount;
             }
 
             foreach ($products as $product) {
