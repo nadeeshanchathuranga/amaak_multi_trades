@@ -262,6 +262,14 @@ class PosController extends Controller
                 }
             }
 
+            $cashAmount = floatval($request->input('cash', 0));
+            $cardAmount = floatval($request->input('card', 0));
+            $paymentMethod = $request->input('paymentMethod');
+
+            if ($cashAmount > 0 && $cardAmount > 0) {
+                $paymentMethod = 'cash+card';
+            }
+
             // Create the sale record
             $sale = Sale::create([
                 'customer_id' => $customer ? $customer->id : null, // Nullable customer_id
@@ -271,9 +279,10 @@ class PosController extends Controller
                 'total_amount' => $finalTotal, // Total amount including Koko surcharge if applicable
                 'discount' => $totalDiscount, // Default discount to 0 if not provided
                 'total_cost' => $totalCost,
-                'payment_method' => $request->input('paymentMethod'), // Payment method from the request
+                'payment_method' => $paymentMethod, // Payment method from the request
                 'sale_date' => now()->toDateString(), // Current date
-                'cash' => $request->input('cash'),
+                'cash' => $cashAmount,
+                'card' => $cardAmount,
                 'custom_discount' => $customValue, // Store calculated custom discount value, not raw input
                 
 

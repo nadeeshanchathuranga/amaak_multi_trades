@@ -196,17 +196,32 @@
                   <span class="ml-2">LKR</span>
                 </span>
               </div>
+              <div class="flex items-center justify-between w-full px-16 pt-4 pb-4 border-b border-black">
+                <p class="text-xl text-black">Card</p>
+                <span>
+                  <CurrencyInput
+                    v-model="card"
+                    :options="{ currency: 'EUR' }"
+                  />
+                  <span class="ml-2">LKR</span>
+                </span>
+              </div>
               <div class="flex items-center justify-between w-full px-16 pt-4">
                 <p class="text-3xl text-black">Total</p>
                 <p class="text-3xl text-black">{{ total }} LKR</p>
+              </div>
+
+              <div class="flex items-center justify-between w-full px-16 pt-4">
+                <p class="text-xl text-black">Total Paid</p>
+                <p class="text-xl text-black">{{ totalPaid }} LKR</p>
               </div>
               
               
               <div
                 class="flex items-center justify-between w-full px-16 pt-4 pb-4 border-b border-black"
               >
-                <p class="text-xl text-black">Balance</p>
-                <p>{{ balance }} LKR</p>
+                <p class="text-xl text-black">Remaining</p>
+                <p>{{ remaining }} LKR</p>
               </div>
             </div>
 
@@ -219,7 +234,7 @@
                   @click="selectPaymentMethod('cash')"
                   :class="[
                     'cursor-pointer w-[100px]  border border-black rounded-xl flex flex-col justify-center items-center text-center',
-                    selectedPaymentMethod === 'cash'
+                    (selectedPaymentMethod === 'cash' || (cash > 0 && card > 0))
                       ? 'bg-yellow-500 font-bold'
                       : 'text-black',
                   ]"
@@ -230,7 +245,7 @@
                   @click="selectPaymentMethod('card')"
                   :class="[
                     'cursor-pointer w-[100px] border border-black rounded-xl flex flex-col justify-center items-center text-center',
-                    selectedPaymentMethod === 'card'
+                    (selectedPaymentMethod === 'card' || (cash > 0 && card > 0))
                       ? 'bg-yellow-500 font-bold'
                       : 'text-black',
                   ]"
@@ -255,12 +270,13 @@
               <div class="flex items-center justify-center w-full">
                 <button
                 type="button"
-                @click="openPrintSlip"
+                @click="submitOrder"
+                :disabled="products.length === 0 || remaining > 0"
                 :class="[
-                    'w-full bg-black py-4 text-2xl font-bold tracking-wider text-center text-white uppercase rounded-xl',
-                    products.length === 0
-                    ? ' cursor-not-allowed'
-                    : ' cursor-pointer',
+                  'w-full bg-black py-4 text-2xl font-bold tracking-wider text-center text-white uppercase rounded-xl',
+                  (products.length === 0 || remaining > 0)
+                  ? ' cursor-not-allowed opacity-60'
+                  : ' cursor-pointer',
                 ]"
                 >
                 <i class="pr-4 ri-add-circle-fill"></i> Confirm Order
@@ -301,6 +317,7 @@ const isSuccessModalOpen = ref(false);
 const isAlertModalOpen = ref(false);
 const message = ref("");
 const cash = ref(0);
+const card = ref(0);
 const product_name = ref('');
 const custom_discount = ref(0);
 const product_quantity = ref(1);
@@ -403,9 +420,9 @@ const orderId = computed(() => {
 const submitOrder = async () => {
   // if (window.confirm("Are you sure you want to confirm the order?")) {
   console.log(products.value);
-  if (balance.value < 0) {
+  if (remaining.value > 0) {
     isAlertModalOpen.value = true;
-    message.value = "Cash is not enough";
+    message.value = "Payment is not enough";
     return;
   }
   try {
@@ -417,6 +434,7 @@ const submitOrder = async () => {
       userId: props.loggedInUser.id,
       orderId: orderId.value,
       cash: cash.value,
+      card: card.value,
       custom_discount: custom_discount.value,
     });
     isSuccessModalOpen.value = true;
@@ -464,10 +482,16 @@ const total = computed(() => {
   return (subtotalValue - discountValue).toFixed(2);
 });
 
-const balance = computed(() => {
+const totalPaid = computed(() => {
   const cashValue = parseFloat(cash.value) || 0;
+  const cardValue = parseFloat(card.value) || 0;
+  return (cashValue + cardValue).toFixed(2);
+});
+
+const remaining = computed(() => {
+  const paidValue = parseFloat(totalPaid.value) || 0;
   const totalValue = parseFloat(total.value);
-  return (cashValue - totalValue).toFixed(2);
+  return (totalValue - paidValue).toFixed(2);
 });
 
 
@@ -516,9 +540,24 @@ const removeProduct = (index) => {
   products.value.splice(index, 1);
 };
 
-watch([cash, custom_discount], ([newCash, newDiscount]) => {
+watch([cash, card, custom_discount], ([newCash, newCard, newDiscount]) => {
   cash.value = parseFloat(newCash) || 0;
+  card.value = parseFloat(newCard) || 0;
   custom_discount.value = parseFloat(newDiscount) || 0;
+  
+  // Auto-select payment method based on which covers the full amount
+  const totalValue = parseFloat(total.value);
+  const cashValue = parseFloat(cash.value) || 0;
+  const cardValue = parseFloat(card.value) || 0;
+  
+  if (cashValue >= totalValue && cardValue >= totalValue) {
+    // Both contain full payment - select 'cash' as primary but both will show as selected in split payment
+    selectedPaymentMethod.value = 'cash';
+  } else if (cashValue >= totalValue && cardValue === 0) {
+    selectedPaymentMethod.value = 'cash';
+  } else if (cardValue >= totalValue && cashValue === 0) {
+    selectedPaymentMethod.value = 'card';
+  }
 });
 
 // Attach the keypress event listener when the component is mounted
@@ -707,14 +746,18 @@ const openPrintSlip = () => {
                   <span>Total</span>
                   <span>${total.value} LKR</span>
               </div>
-              <div>
+                <div>
                   <span>Cash</span>
                   <span>${cash.value} LKR</span>
-              </div>
-              <div style="font-weight: bold;">
-                  <span>Balance</span>
-                  <span>${balance.value} LKR</span>
-              </div>
+                </div>
+                <div>
+                  <span>Card</span>
+                  <span>${card.value} LKR</span>
+                </div>
+                <div style="font-weight: bold;">
+                  <span>Remaining</span>
+                  <span>${remaining.value} LKR</span>
+                </div>
           </div>
           
           <div class="footer">
