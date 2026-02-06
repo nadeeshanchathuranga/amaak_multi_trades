@@ -34,6 +34,12 @@ class DatabaseSeeder extends Seeder
                 'password'  => 'cashier@amaak2025',
             ],
             [
+                'name'      => 'cashier2',
+                'email'     => 't2@cashier.com',
+                'role_type' => 'Cashier',
+                'password'  => 'cashier@amaak2025',
+            ],
+            [
                 'name'      => 'operator',
                 'email'     => 'operator@operator.com',
                 'role_type' => 'Operator',
