@@ -42,7 +42,8 @@ class ReportController extends Controller
 
     // Query for sales with optional date range filtering
     $salesQuery = Sale::whereHas('saleItems.product.category')
-    ->with(['saleItems.product.category', 'employee']);
+    ->with(['saleItems.product.category', 'employee', 'customer'])
+    ->select('sales.*');
 
     // Base query for sales quantities
     $salesQuantitiesQuery = SaleItem::query()

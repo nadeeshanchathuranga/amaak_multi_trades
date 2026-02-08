@@ -842,6 +842,8 @@
           <th class="p-3 text-center font-semibold">Customer</th>
           <th class="p-3 text-center font-semibold">Employee</th>
           <th class="p-3 text-center font-semibold">Payment Method</th>
+          <th class="p-3 text-center font-semibold">Cash (LKR)</th>
+          <th class="p-3 text-center font-semibold">Card (LKR)</th>
           <th class="p-3 text-center font-semibold">Total Amount (LKR)</th>
           <th class="p-3 text-center font-semibold">Discount</th>
           <th class="p-3 text-center font-semibold">Sale Date</th>
@@ -862,15 +864,22 @@
           <td class="p-3 text-center">
             <span class="px-2 py-1 rounded-full text-xs font-semibold"
               :class="{
-                'bg-green-100 text-green-800': sale.payment_method === 'Cash',
-                'bg-blue-100 text-blue-800': sale.payment_method === 'Card',
+                'bg-green-100 text-green-800': sale.payment_method === 'cash' || sale.payment_method === 'Cash',
+                'bg-blue-100 text-blue-800': sale.payment_method === 'card' || sale.payment_method === 'Card',
                 'bg-purple-100 text-purple-800': sale.payment_method === 'Online',
                 'bg-yellow-100 text-yellow-800': sale.payment_method === 'Koko',
-                'bg-gray-100 text-gray-800': !['Cash', 'Card', 'Online', 'Koko'].includes(sale.payment_method)
+                'bg-orange-100 text-orange-800': sale.payment_method === 'cash+card',
+                'bg-gray-100 text-gray-800': !['Cash', 'cash', 'Card', 'card', 'Online', 'Koko', 'cash+card'].includes(sale.payment_method)
               }"
             >
               {{ sale.payment_method }}
             </span>
+          </td>
+          <td class="p-3 text-center" :class="{ 'font-semibold text-green-600': sale.cash > 0 }">
+            {{ sale.cash ? parseFloat(sale.cash).toLocaleString() : '-' }}
+          </td>
+          <td class="p-3 text-center" :class="{ 'font-semibold text-blue-600': sale.card > 0 }">
+            {{ sale.card ? parseFloat(sale.card).toLocaleString() : '-' }}
           </td>
           <td class="p-3 text-center font-semibold text-green-600">{{ sale.total_amount.toLocaleString() }}</td>
           <td class="p-3 text-center">{{ sale.discount || "0.00" }}</td>
