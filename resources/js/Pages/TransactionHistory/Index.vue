@@ -153,6 +153,8 @@
                 <th class="p-4 font-semibold tracking-wide text-left uppercase">Total Amount</th>
                 <th class="p-4 font-semibold tracking-wide text-left uppercase"> Discount</th>
                 <th class="p-4 font-semibold tracking-wide text-left uppercase">Payment Method</th>
+                <th class="p-4 font-semibold tracking-wide text-left uppercase">Cash (LKR)</th>
+                <th class="p-4 font-semibold tracking-wide text-left uppercase">Card (LKR)</th>
                 <th class="p-4 font-semibold tracking-wide text-left uppercase">Sale Date</th>
                 <th class="p-4 font-semibold tracking-wide text-left uppercase"> Action</th>
               </tr>
@@ -182,7 +184,27 @@
                 </td>
 
                 <td class="p-4 font-bold border-gray-200">
-                  {{ history.payment_method || "N/A" }}
+                  <span 
+                    :class="{
+                      'px-2 py-1 rounded-full text-xs font-semibold': true,
+                      'bg-green-100 text-green-800': history.payment_method === 'cash' || history.payment_method === 'Cash',
+                      'bg-blue-100 text-blue-800': history.payment_method === 'card' || history.payment_method === 'Card',
+                      'bg-purple-100 text-purple-800': history.payment_method === 'Online',
+                      'bg-yellow-100 text-yellow-800': history.payment_method === 'Koko',
+                      'bg-orange-100 text-orange-800': history.payment_method === 'cash+card',
+                      'bg-gray-100 text-gray-800': !['cash', 'Cash', 'card', 'Card', 'Online', 'Koko', 'cash+card'].includes(history.payment_method)
+                    }"
+                  >
+                    {{ history.payment_method || "N/A" }}
+                  </span>
+                </td>
+
+                <td class="p-4 font-bold border-gray-200" :class="{ 'text-green-600': history.cash > 0 }">
+                  {{ history.cash ? parseFloat(history.cash).toFixed(2) : '-' }}
+                </td>
+
+                <td class="p-4 font-bold border-gray-200" :class="{ 'text-blue-600': history.card > 0 }">
+                  {{ history.card ? parseFloat(history.card).toFixed(2) : '-' }}
                 </td>
 
                 <td class="p-4 font-bold border-gray-200">
