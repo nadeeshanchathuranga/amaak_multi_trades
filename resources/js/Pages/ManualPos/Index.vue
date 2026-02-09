@@ -291,6 +291,23 @@
       </div>
 
     
+  <PosSuccessModel
+    :open="isSuccessModalOpen"
+    @update:open="handleModalOpenUpdate"
+    :products="products"
+    :employee="employee_id"
+    :cashier="loggedInUser"
+    :customer="customer"
+    :orderid="orderId"
+    :cash="cash"
+    :balance="remaining"
+    :subTotal="subtotal"
+    :totalDiscount="totalDiscount"
+    :total="total"
+    :custom_discount="custom_discount"
+    :paymentMethod="selectedPaymentMethod"
+  />
+  <AlertModel v-model:open="isAlertModalOpen" :message="message" />
   </div>
 
 </template>
@@ -400,7 +417,7 @@ const selectPaymentMethod = (method) => {
 };
 
 const refreshData = () => {
-  router.visit(route("pos.index"), {
+  router.visit(route("manualpos.index"), {
     preserveScroll: false, // Reset scroll
     preserveState: false, // Reset component state
   });
@@ -420,6 +437,11 @@ const orderId = computed(() => {
 const submitOrder = async () => {
   // if (window.confirm("Are you sure you want to confirm the order?")) {
   console.log(products.value);
+  if (!employee_id.value) {
+    isAlertModalOpen.value = true;
+    message.value = "Please select an employee before processing the order";
+    return;
+  }
   if (remaining.value > 0) {
     isAlertModalOpen.value = true;
     message.value = "Payment is not enough";

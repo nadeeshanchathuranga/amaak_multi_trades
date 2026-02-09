@@ -160,8 +160,21 @@ class PosController extends Controller
 
         $products = $request->input('products');
         
-        // Normalize discount fields: only keep discount values when apply_discount === true
+        // Normalize product data: handle both POS (with selling_price) and ManualPos (with unitPrice)
         $normalizedProducts = collect($products)->map(function ($product) {
+            // Convert unitPrice to selling_price for ManualPos compatibility
+            if (!isset($product['selling_price']) && isset($product['unitPrice'])) {
+                $product['selling_price'] = $product['unitPrice'];
+            }
+            // Set cost_price for ManualPos products (no cost tracking for manual entry)
+            if (!isset($product['cost_price'])) {
+                $product['cost_price'] = 0;
+            }
+            // Set id for ManualPos products
+            if (!isset($product['id'])) {
+                $product['id'] = null;
+            }
+            
             if (!isset($product['apply_discount']) || $product['apply_discount'] !== true || !isset($product['discount']) || $product['discount'] <= 0) {
                 // Force discount to zero if not explicitly enabled
                 $product['discount'] = 0;
@@ -178,7 +191,7 @@ class PosController extends Controller
         }, 0);
 
         $totalCost = collect($products)->reduce(function ($carry, $product) {
-            return $carry + ($product['quantity'] * $product['cost_price']);
+            return $carry + ($product['quantity'] * ($product['cost_price'] ?? 0));
         }, 0);
         // $returnItems = ReturnItem::with('product', 'customer', 'sale')->orderBy('created_at', 'desc')->get();
         $productDiscounts = collect($products)->reduce(function ($carry, $product) {
@@ -309,7 +322,28 @@ class PosController extends Controller
             }
 
             foreach ($products as $product) {
-                // Check stock before saving sale items
+                // Check if this is a ManualPos product (no id) or regular POS product
+                if (!$product['id']) {
+                    // ManualPos: Create sale item without product_id
+                    $itemTotal = $product['quantity'] * $product['selling_price'];
+                    $itemDiscount = isset($itemDiscountMap[null]) ? $itemDiscountMap[null] : 0;
+                    $perUnitDiscount = $product['quantity'] > 0 ? ($itemDiscount / $product['quantity']) : 0;
+                    $discountedUnitPrice = $product['selling_price'] - $perUnitDiscount;
+                    $itemFinalTotal = $itemTotal - $itemDiscount;
+
+                    SaleItem::create([
+                        'sale_id' => $sale->id,
+                        'product_id' => null, // ManualPos products don't have a product_id
+                        'quantity' => $product['quantity'],
+                        'unit_price' => $discountedUnitPrice,
+                        'cost_price' => $product['cost_price'] ?? 0,
+                        'total_price' => $itemFinalTotal,
+                        'discount' => $itemDiscount,
+                    ]);
+                    continue;
+                }
+
+                // Regular POS: Product from database
                 $productModel = Product::find($product['id']);
                 if ($productModel) {
                     $newStockQuantity = $productModel->stock_quantity - $product['quantity'];
