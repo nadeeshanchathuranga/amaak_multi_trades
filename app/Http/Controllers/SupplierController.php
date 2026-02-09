@@ -222,21 +222,34 @@ class SupplierController extends Controller
         } else {
             // Make payment against existing invoice or create payment without invoice
             $payment = DB::transaction(function () use ($validated, $supplier) {
+                $invoice = null;
+
+                if (!empty($validated['invoice_id'])) {
+                    $invoice = SupplierInvoice::where('supplier_id', $supplier->id)
+                        ->find($validated['invoice_id']);
+                }
+
+                if (!$invoice && !empty($validated['invoice_number'])) {
+                    $invoice = SupplierInvoice::where('supplier_id', $supplier->id)
+                        ->where('invoice_number', $validated['invoice_number'])
+                        ->first();
+                }
+
                 $payment = SupplierPayment::create([
                     'supplier_id' => $supplier->id,
-                    'supplier_invoice_id' => $validated['invoice_id'] ?? null,
-                    'invoice_number' => $validated['invoice_number'] ?? null,
+                    'supplier_invoice_id' => $invoice?->id,
+                    'invoice_number' => $validated['invoice_number'] ?? $invoice?->invoice_number,
                     'description' => $validated['description'] ?? null,
-                    'total_cost' => $validated['total_cost'] ?? null,
+                    'total_cost' => $validated['total_cost'] ?? $invoice?->total_amount,
                     'pay' => $validated['pay'],
                     'status' => 'complete'
                 ]);
 
                 // Update invoice if payment is against an invoice
-                if ($validated['invoice_id']) {
-                    $invoice = SupplierInvoice::findOrFail($validated['invoice_id']);
+                if ($invoice) {
                     $invoice->paid_amount += $validated['pay'];
-                    $invoice->updateStatus();
+                    $invoice->save(); // Save the paid_amount first
+                    $invoice->updateStatus(); // Then update status
                 }
 
                 return $payment;
