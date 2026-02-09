@@ -386,6 +386,7 @@ const props = defineProps({
   colors: Array,
   sizes: Array,
   companyInfo: Object,
+  initialOrderId: String,
 });
 
 
@@ -426,13 +427,7 @@ const refreshData = () => {
 
 
 
-const orderId = computed(() => {
-  const characters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  return Array.from({ length: 6 }, () =>
-    characters.charAt(Math.floor(Math.random() * characters.length))
-  ).join("");
-});
+const orderId = ref(props.initialOrderId);
 
 const submitOrder = async () => {
   // if (window.confirm("Are you sure you want to confirm the order?")) {
@@ -454,7 +449,7 @@ const submitOrder = async () => {
       employee_id: employee_id.value,
       paymentMethod: selectedPaymentMethod.value,
       userId: props.loggedInUser.id,
-      orderId: orderId.value,
+      orderid: orderId.value,
       cash: cash.value,
       card: card.value,
       custom_discount: custom_discount.value,
