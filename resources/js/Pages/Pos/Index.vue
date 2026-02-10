@@ -412,9 +412,9 @@
                                 <button @click="() => {
                                     submitOrder();
                                 }
-                                    " type="button" :disabled="products.length === 0 || remaining > 0" :class="[
+                                    " type="button" :disabled="products.length === 0 || (remaining > 0 && !isCreditBill)" :class="[
                                         'w-full bg-black py-4 text-2xl font-bold tracking-wider text-center text-white uppercase rounded-xl',
-                                        (products.length === 0 || remaining > 0)
+                                        (products.length === 0 || (remaining > 0 && !isCreditBill))
                                             ? ' cursor-not-allowed opacity-60'
                                             : ' cursor-pointer',
                                     ]">
@@ -626,11 +626,8 @@ const removeCoupon = () => {
 };
 
 const handleCreditBillChange = () => {
-    if (isCreditBill.value) {
-        selectedPaymentMethod.value = "credit bill";
-    } else {
-        selectedPaymentMethod.value = "cash"; // Reset to default when unchecked
-    }
+    // Credit bill checkbox now just toggles - doesn't change payment method
+    // User can pay partial cash/card + credit bill for remaining
 };
 
 const selectPaymentMethod = (method) => {
@@ -678,16 +675,18 @@ const submitOrder = async () => {
         return;
     }
 
-    // Check if payment is complete for regular sales
-    if (remaining.value > 0 && products.value.length > 0) {
+    // Check if payment is complete (unless credit bill is used for remaining)
+    if (remaining.value > 0 && !isCreditBill.value && products.value.length > 0) {
         isAlertModalOpen.value = true;
         message.value = "Payment is not enough";
         return;
     }
 
+    // If credit bill is checked, order can be submitted (full or partial credit bill)
+    // No additional validation needed - isCreditBill checkbox allows it
+
     try {
         // Normalize discount fields before submitting
-        // Only keep discount values when apply_discount === true
         const normalizedProducts = products.value.map(item => ({
             ...item,
             discount: (item.apply_discount === true && item.discount > 0) ? item.discount : 0,
@@ -696,12 +695,24 @@ const submitOrder = async () => {
             discounted_price: item.discounted_price || item.selling_price,
         }));
 
+        // Determine payment method based on payment status
+        let paymentMethod = selectedPaymentMethod.value;
+        
+        // If credit bill is checked and there's remaining balance, set it as hybrid or credit bill
+        if (isCreditBill.value && remaining.value > 0) {
+            // Hybrid: partial payment + credit bill for remaining
+            paymentMethod = 'cash+card+credit bill'; // Will need backend to handle this
+        } else if (isCreditBill.value && remaining.value <= 0) {
+            // Full credit bill (unlikely but handle it)
+            paymentMethod = 'credit bill';
+        }
+
         // Regular sale
         const response = await axios.post("/pos/submit", {
             customer: customer.value,
             products: normalizedProducts,
             employee_id: employee_id.value,
-            paymentMethod: selectedPaymentMethod.value,
+            paymentMethod: paymentMethod,
             userId: props.loggedInUser.id,
             orderid: orderid.value,
             cash: cash.value,
@@ -709,6 +720,8 @@ const submitOrder = async () => {
             custom_discount: custom_discount.value,
             custom_discount_type: custom_discount_type.value,
             appliedCoupon: appliedCoupon.value,
+            isCreditBill: isCreditBill.value,
+            creditBillAmount: isCreditBill.value ? remaining.value : 0,
         });
 
         // Set modal customer data for receipt display

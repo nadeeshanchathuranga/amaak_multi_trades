@@ -271,10 +271,10 @@
                 <button
                 type="button"
                 @click="submitOrder"
-                :disabled="products.length === 0 || remaining > 0"
+                :disabled="products.length === 0 || (remaining > 0 && !isCreditBill)"
                 :class="[
                   'w-full bg-black py-4 text-2xl font-bold tracking-wider text-center text-white uppercase rounded-xl',
-                  (products.length === 0 || remaining > 0)
+                  (products.length === 0 || (remaining > 0 && !isCreditBill))
                   ? ' cursor-not-allowed opacity-60'
                   : ' cursor-pointer',
                 ]"
@@ -403,11 +403,8 @@ const selectedPaymentMethod = ref("cash");
 const isCreditBill = ref(false);
 
 const handleCreditBillChange = () => {
-    if (isCreditBill.value) {
-        selectedPaymentMethod.value = "credit bill";
-    } else {
-        selectedPaymentMethod.value = "cash";
-    }
+  // Credit bill checkbox now just toggles - doesn't change payment method
+  // User can pay partial cash/card + credit bill for remaining
 };
 
 const selectPaymentMethod = (method) => {
@@ -437,22 +434,33 @@ const submitOrder = async () => {
     message.value = "Please select an employee before processing the order";
     return;
   }
-  if (remaining.value > 0) {
+  if (remaining.value > 0 && !isCreditBill.value) {
     isAlertModalOpen.value = true;
     message.value = "Payment is not enough";
     return;
   }
   try {
+    let paymentMethod = selectedPaymentMethod.value;
+    if (isCreditBill.value && Number(totalPaid.value) === 0) {
+      paymentMethod = 'credit bill';
+    } else if (isCreditBill.value && remaining.value > 0) {
+      paymentMethod = 'cash+card+credit bill';
+    } else if (isCreditBill.value && remaining.value <= 0) {
+      paymentMethod = 'credit bill';
+    }
+
     const response = await axios.post("/pos/submit", {
       customer: customer.value,
       products: products.value,
       employee_id: employee_id.value,
-      paymentMethod: selectedPaymentMethod.value,
+      paymentMethod: paymentMethod,
       userId: props.loggedInUser.id,
       orderid: orderId.value,
       cash: cash.value,
       card: card.value,
       custom_discount: custom_discount.value,
+      isCreditBill: isCreditBill.value,
+      creditBillAmount: isCreditBill.value ? remaining.value : 0,
     });
     isSuccessModalOpen.value = true;
     console.log(response.data); // Handle success
