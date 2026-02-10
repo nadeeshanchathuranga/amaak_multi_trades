@@ -49,21 +49,40 @@
                 </div>
                 <div class="bg-gray-700 p-3 rounded">
                   <span class="block font-medium text-gray-400">Total Amount:</span>
-                  <span class="text-blue-400 font-bold">{{ formatCurrency(selectedCreditBill?.total_amount) }}</span>
+                  <span class="text-blue-400 font-bold">{{ formatCurrency(getTotalOrderAmount()) }}</span>
                 </div>
                 <div class="bg-gray-700 p-3 rounded">
                   <span class="block font-medium text-gray-400">Paid Amount:</span>
-                  <span class="text-green-400 font-bold">{{ formatCurrency(selectedCreditBill?.paid_amount) }}</span>
+                  <span class="text-green-400 font-bold">{{ formatCurrency(getTotalPaid()) }}</span>
                 </div>
                 <div class="bg-gray-700 p-3 rounded">
                   <span class="block font-medium text-gray-400">Remaining:</span>
-                  <span class="text-yellow-400 font-bold">{{ formatCurrency(selectedCreditBill?.remaining_amount) }}</span>
+                  <span class="text-yellow-400 font-bold">{{ formatCurrency(getRemainingAmount()) }}</span>
                 </div>
                 <div class="bg-gray-700 p-3 rounded">
                   <span class="block font-medium text-gray-400">Status:</span>
                   <span class="uppercase font-bold" :class="getStatusClass(selectedCreditBill?.payment_status)">
                     {{ selectedCreditBill?.payment_status }}
                   </span>
+                </div>
+              </div>
+              
+              <!-- Payment Breakdown -->
+              <div class="mt-4 pt-4 border-t border-gray-600">
+                <h4 class="text-sm font-semibold text-white mb-2">Payment Breakdown:</h4>
+                <div class="grid grid-cols-3 gap-2 text-xs">
+                  <div class="bg-gray-700 p-2 rounded">
+                    <span class="block font-medium text-gray-400">Upfront (Cash)</span>
+                    <span class="text-green-300 font-bold">{{ formatCurrency(selectedCreditBill?.sale?.cash || 0) }}</span>
+                  </div>
+                  <div class="bg-gray-700 p-2 rounded">
+                    <span class="block font-medium text-gray-400">Upfront (Card)</span>
+                    <span class="text-green-300 font-bold">{{ formatCurrency(selectedCreditBill?.sale?.card || 0) }}</span>
+                  </div>
+                  <div class="bg-gray-700 p-2 rounded">
+                    <span class="block font-medium text-gray-400">Credit Payments</span>
+                    <span class="text-blue-300 font-bold">{{ formatCurrency((selectedCreditBill?.paid_amount || 0) - (selectedCreditBill?.sale?.cash || 0) - (selectedCreditBill?.sale?.card || 0)) }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -221,6 +240,32 @@ const formatDate = (dateString) => {
     hour: '2-digit',
     minute: '2-digit'
   });
+};
+
+const getTotalPaid = () => {
+  if (!props.selectedCreditBill) return 0;
+  
+  // The paid_amount already includes both upfront payment (cash+card) and credit bill payments
+  // So we just return it directly - no need to add sale.cash and sale.card again
+  const totalPaid = parseFloat(props.selectedCreditBill.paid_amount) || 0;
+  
+  console.log('Total Paid (from credit_bill.paid_amount):', totalPaid);
+  
+  return totalPaid;
+};
+
+const getTotalOrderAmount = () => {
+  if (!props.selectedCreditBill) return 0;
+  // The total order amount should come from the sale
+  return parseFloat(props.selectedCreditBill.sale?.total_amount) || 0;
+};
+
+const getRemainingAmount = () => {
+  if (!props.selectedCreditBill) return 0;
+  // Remaining = Total Order Amount - Total Paid
+  const totalOrder = getTotalOrderAmount();
+  const totalPaid = getTotalPaid();
+  return Math.max(0, totalOrder - totalPaid);
 };
 </script>
 

@@ -481,28 +481,57 @@ class PosController extends Controller
                     // Calculate credit bill amount (remaining balance)
                     $creditBillAmount = $request->input('creditBillAmount', 0);
                     
+                    \Log::info("CreditBill Creation Debug", [
+                        'isCreditBill' => $isCreditBill,
+                        'creditBillAmount' => $creditBillAmount,
+                        'sale_id' => $sale->id ?? 'null',
+                        'customer_id' => $customer ? $customer->id : 'null',
+                        'order_id' => $request->input('orderid'),
+                        'cash' => $cashAmount,
+                        'card' => $cardAmount,
+                        'finalTotal' => $finalTotal,
+                    ]);
+                    
                     // If credit bill amount is provided, use it; otherwise use remaining after partial payment
                     if (!$creditBillAmount) {
                         $totalPaidNow = $cashAmount + $cardAmount;
                         $creditBillAmount = max(0, $finalTotal - $totalPaidNow);
                     }
                     
+                    \Log::info("CreditBill Amount Calculated", [
+                        'creditBillAmount' => $creditBillAmount,
+                    ]);
+                    
                     // Only create credit bill if there's remaining amount
                     if ($creditBillAmount > 0) {
-                        $creditBill = CreditBill::updateOrCreateForCustomer(
+                        $upfrontPayment = $cashAmount + $cardAmount; // Total upfront payment (cash + card)
+                        
+                        $creditBill = CreditBill::createOrUpdateWithAmount(
                             $customer ? $customer->id : null,
                             $sale->id,
                             $request->input('orderid'),
-                            $creditBillAmount // Credit bill amount (remaining, not total)
+                            $finalTotal,  // Full order total
+                            $creditBillAmount,  // Amount still owed via credit bill
+                            $upfrontPayment  // Upfront payment (cash + card)
                         );
                         
                         $action = $creditBill->wasRecentlyCreated ? 'created' : 'updated';
-                        \Log::info("Credit bill {$action} successfully for sale ID: {$sale->id}" . 
-                                  ($customer ? ", customer ID: {$customer->id}" : "") . 
-                                  ", Credit Amount: {$creditBillAmount}");
+                        \Log::info("Credit bill {$action} successfully", [
+                            'credit_bill_id' => $creditBill->id,
+                            'sale_id' => $creditBill->sale_id,
+                            'order_id' => $creditBill->order_id,
+                            'total_amount' => $creditBill->total_amount,
+                            'remaining_amount' => $creditBill->remaining_amount,
+                        ]);
+                    } else {
+                        \Log::info("No credit bill created - amount is 0", ['creditBillAmount' => $creditBillAmount]);
                     }
                 } catch (\Exception $e) {
-                    \Log::error('Failed to create/update credit bill for sale ID: ' . $sale->id . '. Error: ' . $e->getMessage());
+                    \Log::error('Failed to create/update credit bill', [
+                        'error' => $e->getMessage(),
+                        'sale_id' => $sale->id,
+                        'trace' => $e->getTraceAsString(),
+                    ]);
                     throw $e; // Re-throw to trigger transaction rollback
                 }
             }

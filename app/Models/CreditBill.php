@@ -78,8 +78,17 @@ class CreditBill extends Model
     // Methods to handle payment updates
     public function updatePaymentAmounts()
     {
-        // Calculate total paid from all payments
-        $totalPaid = $this->payments()->sum('payment_amount');
+        // Get upfront payment from the linked sale (cash + card)
+        $upfrontPayment = 0;
+        if ($this->sale) {
+            $upfrontPayment = ($this->sale->cash ?? 0) + ($this->sale->card ?? 0);
+        }
+        
+        // Calculate additional payments made via credit bill payments table
+        $creditBillPaymentsTotal = $this->payments()->sum('payment_amount');
+        
+        // Total paid = upfront payment + credit bill payments
+        $totalPaid = $upfrontPayment + $creditBillPaymentsTotal;
         
         // Update amounts
         $this->paid_amount = $totalPaid;
@@ -120,7 +129,66 @@ class CreditBill extends Model
     }
 
     /**
+     * Create or update credit bill with proper total and remaining amounts
+     * 
+     * @param int|null $customerId The customer ID (can be null for walk-in)
+     * @param int $saleId The sale ID (from the main sale)
+     * @param string $orderId The order ID
+     * @param float $fullOrderTotal The FULL order total (not just credit portion)
+     * @param float $creditBillAmount The amount still owed via credit bill (remaining to pay)
+     * @param float $upfrontPayment The upfront payment made immediately (cash + card)
+     * @return CreditBill
+     */
+    public static function createOrUpdateWithAmount($customerId, $saleId, $orderId, $fullOrderTotal, $creditBillAmount, $upfrontPayment = 0, $notes = null)
+    {
+        if ($customerId) {
+            // Try to find existing unpaid credit bill for customer
+            $existingCreditBill = static::where('customer_id', $customerId)
+                ->whereIn('payment_status', ['pending', 'partial'])
+                ->first();
+
+            if ($existingCreditBill) {
+                // Update existing credit bill - add new amounts
+                $newTotal = $existingCreditBill->total_amount + $fullOrderTotal;
+                $newRemaining = $existingCreditBill->remaining_amount + $creditBillAmount;
+                $newPaid = $existingCreditBill->paid_amount + $upfrontPayment;
+                
+                $existingCreditBill->update([
+                    'sale_id' => $saleId,
+                    'order_id' => $orderId,
+                    'total_amount' => $newTotal,
+                    'paid_amount' => $newPaid,  // Add upfront payment to paid_amount
+                    'remaining_amount' => $newRemaining,
+                    'notes' => ($existingCreditBill->notes ?: '') . 
+                              ($existingCreditBill->notes ? '; ' : '') . 
+                              ($notes ?: "Updated with sale ID: {$saleId} (Order: {$orderId})")
+                ]);
+                
+                // Update status based on new amounts
+                $existingCreditBill->updatePaymentAmounts();
+                
+                return $existingCreditBill;
+            }
+        }
+        
+        // Create new credit bill
+        $newBill = static::create([
+            'sale_id' => $saleId,
+            'customer_id' => $customerId,
+            'order_id' => $orderId,
+            'total_amount' => $fullOrderTotal,  // FULL order total
+            'paid_amount' => $upfrontPayment,   // Set initial paid amount to upfront payment
+            'remaining_amount' => $creditBillAmount,  // Amount still owed via credit bill
+            'payment_status' => $upfrontPayment > 0 ? 'partial' : 'pending',  // Mark as partial if upfront payment made
+            'notes' => $notes ?: ($customerId ? 'Auto-generated from POS sale' : 'Auto-generated from POS sale (no customer)'),
+        ]);
+        
+        return $newBill;
+    }
+
+    /**
      * Update existing credit bill for customer or create new one
+     * DEPRECATED: Use createOrUpdateWithAmount instead
      */
     public static function updateOrCreateForCustomer($customerId, $saleId, $orderId, $amount, $notes = null)
     {
@@ -131,10 +199,15 @@ class CreditBill extends Model
                 ->first();
 
             if ($existingCreditBill) {
-                // Update existing credit bill
+                // Update existing credit bill - add the new amount to total
+                $newTotal = $existingCreditBill->total_amount + $amount;
+                $newRemaining = $existingCreditBill->remaining_amount + $amount;
+                
                 $existingCreditBill->update([
-                    'total_amount' => $existingCreditBill->total_amount + $amount,
-                    'remaining_amount' => $existingCreditBill->remaining_amount + $amount,
+                    'sale_id' => $saleId, // Always use the latest sale_id
+                    'order_id' => $orderId, // Update with latest order ID
+                    'total_amount' => $newTotal,
+                    'remaining_amount' => $newRemaining,
                     'notes' => ($existingCreditBill->notes ?: '') . 
                               ($existingCreditBill->notes ? '; ' : '') . 
                               ($notes ?: "Updated with sale ID: {$saleId} (Order: {$orderId})")
@@ -153,7 +226,6 @@ class CreditBill extends Model
             'paid_amount' => 0,
             'remaining_amount' => $amount,
             'payment_status' => 'pending',
-            'due_date' => now()->addDays(30),
             'notes' => $notes ?: ($customerId ? 'Auto-generated from POS sale' : 'Auto-generated from POS sale (no customer)'),
         ]);
     }
