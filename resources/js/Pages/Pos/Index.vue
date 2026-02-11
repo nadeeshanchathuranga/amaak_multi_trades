@@ -305,21 +305,28 @@
                                     </select>
                                 </span>
                             </div>
-                            <div class="flex items-center justify-between w-full px-8 pt-4 pb-4 border-b border-black">
+                            <div v-if="showCashInput" class="flex items-center justify-between w-full px-8 pt-4 pb-4 border-b border-black">
                                 <p class="text-xl text-black">Cash</p>
                                 <span>
                                     <CurrencyInput v-model="cash" :options="{ currency: 'EUR' }" />
                                     <span class="ml-2">LKR</span>
                                 </span>
                             </div>
-                            <div class="flex items-center justify-between w-full px-8 pt-4 pb-4 border-b border-black">
+                            <div v-if="showCardInput" class="flex items-center justify-between w-full px-8 pt-4 pb-4 border-b border-black">
                                 <p class="text-xl text-black">Card</p>
                                 <span>
                                     <CurrencyInput v-model="card" :options="{ currency: 'EUR' }" />
                                     <span class="ml-2">LKR</span>
                                 </span>
                             </div>
-                            <div v-if="selectedPaymentMethod === 'Koko'" class="flex items-center justify-between w-full px-8 pt-4 pb-4 border-b border-black">
+                            <div v-if="showKokoInput" class="flex items-center justify-between w-full px-8 pt-4 pb-4 border-b border-black">
+                                <p class="text-xl text-black">Koko</p>
+                                <span>
+                                    <CurrencyInput v-model="koko" :options="{ currency: 'EUR' }" />
+                                    <span class="ml-2">LKR</span>
+                                </span>
+                            </div>
+                            <div v-if="hasKoko" class="flex items-center justify-between w-full px-8 pt-4 pb-4 border-b border-black">
                                 <p class="text-xl text-black">Koko Surcharge (11.5%)</p>
                                 <p class="text-xl">{{ kokoSurcharge }} LKR</p>
                             </div>
@@ -368,25 +375,25 @@
                             <!-- Payment method and credit bill options -->
                             <div class="flex items-center justify-center w-full pt-8 space-x-8">
                                 <p class="text-xl text-black">Payment Method :</p>
-                                <div @click="selectPaymentMethod('cash')" :class="[
+                                <div @click="togglePaymentMethod('cash')" :class="[
                                     'cursor-pointer w-[100px]  border border-black rounded-xl flex flex-col justify-center items-center text-center',
-                                    (selectedPaymentMethod === 'cash' || (cash > 0 && card > 0))
+                                    isPaymentSelected('cash')
                                         ? 'bg-yellow-500 font-bold'
                                         : 'text-black',
                                 ]">
                                     <img src="/images/money-stack.png" alt="" class="w-24" />
                                 </div>
-                                <div @click="selectPaymentMethod('card')" :class="[
+                                <div @click="togglePaymentMethod('card')" :class="[
                                     'cursor-pointer w-[100px] border border-black rounded-xl flex flex-col justify-center items-center text-center',
-                                    (selectedPaymentMethod === 'card' || (cash > 0 && card > 0))
+                                    isPaymentSelected('card')
                                         ? 'bg-yellow-500 font-bold'
                                         : 'text-black',
                                 ]">
                                     <img src="/images/bank-card.png" alt="" class="w-24" />
                                 </div>
-                                <div @click="selectPaymentMethod('Koko')" :class="[
+                                <div @click="togglePaymentMethod('Koko')" :class="[
                                     'cursor-pointer w-[100px] border border-black rounded-xl flex flex-col justify-center items-center text-center',
-                                    selectedPaymentMethod === 'Koko'
+                                    isPaymentSelected('Koko')
                                         ? 'bg-yellow-500 font-bold'
                                         : 'text-black',
                                 ]">
@@ -431,7 +438,7 @@
         :employee="modalEmployee" :cashier="loggedInUser" :customer="modalCustomer" :orderid="actualOrderId || orderid.value" :cash="cash"
         :balance="balance" :subTotal="subtotal" :totalDiscount="totalDiscount" :total="total"
         :custom_discount_type="custom_discount_type"
-        :custom_discount="custom_discount" :paymentMethod="selectedPaymentMethod" :kokoSurcharge="kokoSurcharge" />
+        :custom_discount="custom_discount" :paymentMethod="paymentMethodDisplay" :kokoSurcharge="kokoSurcharge" />
     <AlertModel v-model:open="isAlertModalOpen" :message="message" />
 
     <SelectProductModel v-model:open="isSelectModalOpen" :allcategories="allcategories" :colors="colors" :sizes="sizes" :suppliers="suppliers"
@@ -486,6 +493,7 @@ const message = ref("");
 const appliedCoupon = ref(null);
 const cash = ref(0);
 const card = ref(0);
+const koko = ref(0);
 const custom_discount = ref(0);
 const isSelectModalOpen = ref(false);
 const custom_discount_type = ref('percent');
@@ -580,7 +588,12 @@ const employee = computed(() => {
   return props.allemployee.find(emp => String(emp.id) === String(employee_id.value));
 });
 
-const selectedPaymentMethod = ref("cash");
+const selectedPaymentMethods = ref([]);
+const paymentMethodDisplay = computed(() => {
+    return selectedPaymentMethods.value.length > 0
+        ? selectedPaymentMethods.value.join('+')
+        : 'cash';
+});
 const isCreditBill = ref(false);
 
 const refreshData = () => {
@@ -630,12 +643,26 @@ const handleCreditBillChange = () => {
     // User can pay partial cash/card + credit bill for remaining
 };
 
-const selectPaymentMethod = (method) => {
-    selectedPaymentMethod.value = method;
+const isPaymentSelected = (method) => {
+    return selectedPaymentMethods.value.includes(method);
+};
+
+const togglePaymentMethod = (method) => {
+    if (isPaymentSelected(method)) {
+        selectedPaymentMethods.value = selectedPaymentMethods.value.filter(m => m !== method);
+    } else {
+        selectedPaymentMethods.value.push(method);
+    }
+
     if (method !== "credit bill") {
-        isCreditBill.value = false; // Uncheck credit bill when other methods are selected
+        isCreditBill.value = false;
     }
 };
+
+const showCashInput = computed(() => isPaymentSelected('cash'));
+const showCardInput = computed(() => isPaymentSelected('card'));
+const showKokoInput = computed(() => isPaymentSelected('Koko'));
+const hasKoko = computed(() => isPaymentSelected('Koko'));
 
 const incrementQuantity = (id) => {
     const product = products.value.find((item) => item.id === id);
@@ -696,14 +723,15 @@ const submitOrder = async () => {
         }));
 
         // Determine payment method based on payment status
-        let paymentMethod = selectedPaymentMethod.value;
+        const baseMethods = selectedPaymentMethods.value;
+        let paymentMethod = baseMethods.join('+');
         
         // If credit bill is checked and there's remaining balance, set it as hybrid or credit bill
         if (isCreditBill.value && remaining.value > 0) {
-            // Hybrid: partial payment + credit bill for remaining
-            paymentMethod = 'cash+card+credit bill'; // Will need backend to handle this
+            paymentMethod = paymentMethod
+                ? `${paymentMethod}+credit bill`
+                : 'credit bill';
         } else if (isCreditBill.value && remaining.value <= 0) {
-            // Full credit bill (unlikely but handle it)
             paymentMethod = 'credit bill';
         }
 
@@ -716,7 +744,7 @@ const submitOrder = async () => {
             userId: props.loggedInUser.id,
             orderid: orderid.value,
             cash: cash.value,
-            card: card.value,
+            card: (parseFloat(card.value) || 0) + (parseFloat(koko.value) || 0),
             custom_discount: custom_discount.value,
             custom_discount_type: custom_discount_type.value,
             appliedCoupon: appliedCoupon.value,
@@ -809,7 +837,7 @@ const total = computed(() => {
     let baseTotal = subtotalValue - discountValue - customValue;
 
     // Add Koko surcharge if Koko payment method is selected
-    if (selectedPaymentMethod.value === 'Koko') {
+    if (hasKoko.value) {
         const kokoSurcharge = baseTotal * 0.115; // 11.5% surcharge
         baseTotal += kokoSurcharge;
     }
@@ -818,7 +846,7 @@ const total = computed(() => {
 });
 
 const kokoSurcharge = computed(() => {
-    if (selectedPaymentMethod.value === 'Koko') {
+    if (hasKoko.value) {
         const subtotalValue = parseFloat(subtotal.value) || 0;
         const discountValue = parseFloat(totalDiscount.value) || 0;
         const customDiscount = parseFloat(custom_discount.value) || 0;
@@ -847,7 +875,8 @@ const balance = computed(() => {
 const totalPaid = computed(() => {
     const cashValue = parseFloat(cash.value) || 0;
     const cardValue = parseFloat(card.value) || 0;
-    return (cashValue + cardValue).toFixed(2);
+    const kokoValue = parseFloat(koko.value) || 0;
+    return (cashValue + cardValue + kokoValue).toFixed(2);
 });
 
 const remaining = computed(() => {
@@ -1118,24 +1147,11 @@ watch(
 );
 
 // Watch for payment field changes
-watch([cash, card, custom_discount], ([newCash, newCard, newDiscount]) => {
-  cash.value = parseFloat(newCash) || 0;
-  card.value = parseFloat(newCard) || 0;
-  custom_discount.value = parseFloat(newDiscount) || 0;
-  
-  // Auto-select payment method based on which covers the full amount
-  const totalValue = parseFloat(total.value);
-  const cashValue = parseFloat(cash.value) || 0;
-  const cardValue = parseFloat(card.value) || 0;
-  
-  if (cashValue >= totalValue && cardValue >= totalValue) {
-    // Both contain full payment - select 'cash' as primary but both will show as selected in split payment
-    selectedPaymentMethod.value = 'cash';
-  } else if (cashValue >= totalValue && cardValue === 0) {
-    selectedPaymentMethod.value = 'cash';
-  } else if (cardValue >= totalValue && cashValue === 0) {
-    selectedPaymentMethod.value = 'card';
-  }
+watch([cash, card, koko, custom_discount], ([newCash, newCard, newKoko, newDiscount]) => {
+    cash.value = parseFloat(newCash) || 0;
+    card.value = parseFloat(newCard) || 0;
+    koko.value = parseFloat(newKoko) || 0;
+    custom_discount.value = parseFloat(newDiscount) || 0;
 });
 
 // Method to select a product (or barcode)

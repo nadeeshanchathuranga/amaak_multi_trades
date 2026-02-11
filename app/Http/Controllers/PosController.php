@@ -231,9 +231,10 @@ class PosController extends Controller
         // Calculate base total after discounts
         $baseTotal = $totalAmount - $totalDiscount - $customValue - $totalReturnAmount;
 
-        // Add Koko surcharge if payment method is Koko
+        // Add Koko surcharge if payment method includes Koko
         $finalTotal = $baseTotal;
-        if ($request->input('paymentMethod') === 'Koko') {
+        $paymentMethod = (string) $request->input('paymentMethod');
+        if (stripos($paymentMethod, 'Koko') !== false) {
             $kokoSurcharge = $baseTotal * 0.115; // 11.5% surcharge
             $finalTotal = $baseTotal + $kokoSurcharge;
         }
