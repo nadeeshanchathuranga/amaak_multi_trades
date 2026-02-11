@@ -171,6 +171,25 @@
   >
     <!-- Include the Header -->
     <Header />
+    
+    <!-- Page Size Selector -->
+    <div class="w-full flex justify-end">
+      <div class="flex items-center space-x-3 bg-white p-4 rounded-lg shadow">
+        <label for="pageSize" class="text-sm font-medium text-gray-700">Items per page:</label>
+        <select
+          id="pageSize"
+          v-model.number="pageSize"
+          class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option :value="5">5</option>
+          <option :value="10">10</option>
+          <option :value="20">20</option>
+          <option :value="50">50</option>
+          <option :value="100">100</option>
+        </select>
+      </div>
+    </div>
+    
     <div class="w-full py-12 space-y-16">
       <div class="flex md:flex-row flex-col md:items-center items-start justify-between md:space-y-0 space-y-4">
         <div class="flex items-center justify-center space-x-4 ">
@@ -740,11 +759,11 @@
 
       <tbody class="text-[12px] font-medium">
         <tr
-          v-for="(product, index) in products"
+          v-for="(product, index) in paginatedProducts"
           :key="product.id"
           class="border-b transition duration-200 hover:bg-gray-100"
         >
-          <td class="p-3 text-center">{{ index + 1 }}</td>
+          <td class="p-3 text-center">{{ (productsCurrentPage - 1) * pageSize + index + 1 }}</td>
           <td class="p-3 font-bold">{{ product.name || "N/A" }}</td>
           <td class="p-3 text-center">{{ product.stock_quantity }}</td>
           <td class="p-3 text-center">{{ product.sales_qty || "0" }}</td>
@@ -770,6 +789,46 @@
         </tr>
       </tbody>
     </table>
+    </div>
+    <!-- Pagination Controls for Products Table -->
+    <div class="flex justify-between items-center mt-6 px-4">
+      <div class="text-sm text-gray-600">
+        Showing {{ getShowingRange(productsCurrentPage, pageSize, products.length).start }} to {{ getShowingRange(productsCurrentPage, pageSize, products.length).end }} of {{ products.length }} entries
+      </div>
+      
+      <div class="flex items-center space-x-2">
+        <button
+          @click="productsCurrentPage = Math.max(1, productsCurrentPage - 1)"
+          :disabled="productsCurrentPage === 1"
+          class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          Previous
+        </button>
+        
+        <div class="flex space-x-1">
+          <button
+            v-for="page in productsPageNumbers"
+            :key="page"
+            @click="productsCurrentPage = page"
+            :class="[
+              'px-3 py-1 rounded transition',
+              page === productsCurrentPage
+                ? 'bg-blue-600 text-white font-semibold'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            ]"
+          >
+            {{ page }}
+          </button>
+        </div>
+        
+        <button
+          @click="productsCurrentPage = Math.min(productsTotal, productsCurrentPage + 1)"
+          :disabled="productsCurrentPage === productsTotal"
+          class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          Next
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -853,11 +912,11 @@
 
       <tbody class="text-[12px] font-medium">
         <tr
-          v-for="(sale, index) in filteredTopSales"
+          v-for="(sale, index) in paginatedTopSales"
           :key="sale.id"
           class="border-b transition duration-200 hover:bg-gray-100"
         >
-          <td class="p-3 text-center">{{ index + 1 }}</td>
+          <td class="p-3 text-center">{{ (topSalesCurrentPage - 1) * pageSize + index + 1 }}</td>
           <td class="p-3 text-center font-semibold text-blue-600">#{{ sale.id }}</td>
           <td class="p-3 text-center">{{ sale.customer?.name || 'Walk-in Customer' }}</td>  
           <td class="p-3 text-center">{{ sale.employee?.name || 'N/A' }}</td>
@@ -888,6 +947,46 @@
         </tr>
       </tbody>
     </table>
+    </div>
+    <!-- Pagination Controls for Top Sales Table -->
+    <div class="flex justify-between items-center mt-6 px-4">
+      <div class="text-sm text-gray-600">
+        Showing {{ getShowingRange(topSalesCurrentPage, pageSize, filteredTopSales.length).start }} to {{ getShowingRange(topSalesCurrentPage, pageSize, filteredTopSales.length).end }} of {{ filteredTopSales.length }} entries
+      </div>
+      
+      <div class="flex items-center space-x-2">
+        <button
+          @click="topSalesCurrentPage = Math.max(1, topSalesCurrentPage - 1)"
+          :disabled="topSalesCurrentPage === 1"
+          class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          Previous
+        </button>
+        
+        <div class="flex space-x-1">
+          <button
+            v-for="page in topSalesPageNumbers"
+            :key="page"
+            @click="topSalesCurrentPage = page"
+            :class="[
+              'px-3 py-1 rounded transition',
+              page === topSalesCurrentPage
+                ? 'bg-blue-600 text-white font-semibold'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            ]"
+          >
+            {{ page }}
+          </button>
+        </div>
+        
+        <button
+          @click="topSalesCurrentPage = Math.min(topSalesTotal, topSalesCurrentPage + 1)"
+          :disabled="topSalesCurrentPage === topSalesTotal"
+          class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          Next
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -960,11 +1059,11 @@
 
           <tbody class="text-[12px] font-medium">
             <tr
-              v-for="(sale, index) in filteredTodaySales"
+              v-for="(sale, index) in paginatedTodaySales"
               :key="sale.id"
               class="border-b transition duration-200 hover:bg-gray-100"
             >
-              <td class="p-3 text-center">{{ index + 1 }}</td>
+              <td class="p-3 text-center">{{ (todaySalesCurrentPage - 1) * pageSize + index + 1 }}</td>
               <td class="p-3 text-center font-semibold text-blue-600">#{{ sale.id }}</td>
              <td class="p-3 text-center">{{ sale.order_id || 'N/A' }}</td>
               <td class="p-3 text-center">{{ sale.customer_name }}</td>
@@ -993,6 +1092,46 @@
             </tr>
           </tbody>
         </table>
+      </div>
+      <!-- Pagination Controls for Today Sales Table -->
+      <div class="flex justify-between items-center mt-6 px-4">
+        <div class="text-sm text-gray-600">
+          Showing {{ getShowingRange(todaySalesCurrentPage, pageSize, filteredTodaySales.length).start }} to {{ getShowingRange(todaySalesCurrentPage, pageSize, filteredTodaySales.length).end }} of {{ filteredTodaySales.length }} entries
+        </div>
+        
+        <div class="flex items-center space-x-2">
+          <button
+            @click="todaySalesCurrentPage = Math.max(1, todaySalesCurrentPage - 1)"
+            :disabled="todaySalesCurrentPage === 1"
+            class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            Previous
+          </button>
+          
+          <div class="flex space-x-1">
+            <button
+              v-for="page in todaySalesPageNumbers"
+              :key="page"
+              @click="todaySalesCurrentPage = page"
+              :class="[
+                'px-3 py-1 rounded transition',
+                page === todaySalesCurrentPage
+                  ? 'bg-blue-600 text-white font-semibold'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              ]"
+            >
+              {{ page }}
+            </button>
+          </div>
+          
+          <button
+            @click="todaySalesCurrentPage = Math.min(todaySalesTotal, todaySalesCurrentPage + 1)"
+            :disabled="todaySalesCurrentPage === todaySalesTotal"
+            class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1053,11 +1192,11 @@
 
       <tbody class="text-[12px] font-medium">
         <tr
-          v-for="(monthlySale, index) in monthlySalesData"
+          v-for="(monthlySale, index) in paginatedMonthlySales"
           :key="index"
           class="border-b transition duration-200 hover:bg-gray-100"
         >
-          <td class="p-3 text-center">{{ index + 1 }}</td>
+          <td class="p-3 text-center">{{ (monthlySalesCurrentPage - 1) * pageSize + index + 1 }}</td>
           <td class="p-3 text-center">{{ monthlySale.month_name}} {{ monthlySale.year }}</td>
           <td class="p-3 text-center">{{ monthlySale.date_range }}</td>
           <td class="p-3 text-center">{{ monthlySale.number_of_sales }}</td>
@@ -1068,6 +1207,46 @@
         </tr>
       </tbody>
     </table>
+    </div>
+    <!-- Pagination Controls for Monthly Sales Table -->
+    <div class="flex justify-between items-center mt-6 px-4">
+      <div class="text-sm text-gray-600">
+        Showing {{ getShowingRange(monthlySalesCurrentPage, pageSize, filteredMonthlySales.length).start }} to {{ getShowingRange(monthlySalesCurrentPage, pageSize, filteredMonthlySales.length).end }} of {{ filteredMonthlySales.length }} entries
+      </div>
+      
+      <div class="flex items-center space-x-2">
+        <button
+          @click="monthlySalesCurrentPage = Math.max(1, monthlySalesCurrentPage - 1)"
+          :disabled="monthlySalesCurrentPage === 1"
+          class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          Previous
+        </button>
+        
+        <div class="flex space-x-1">
+          <button
+            v-for="page in monthlySalesPageNumbers"
+            :key="page"
+            @click="monthlySalesCurrentPage = page"
+            :class="[
+              'px-3 py-1 rounded transition',
+              page === monthlySalesCurrentPage
+                ? 'bg-blue-600 text-white font-semibold'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            ]"
+          >
+            {{ page }}
+          </button>
+        </div>
+        
+        <button
+          @click="monthlySalesCurrentPage = Math.min(monthlySalesTotal, monthlySalesCurrentPage + 1)"
+          :disabled="monthlySalesCurrentPage === monthlySalesTotal"
+          class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          Next
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -1127,11 +1306,11 @@
 
       <tbody class="text-[12px] font-medium">
         <tr
-          v-for="(item, index) in returnItems"
+          v-for="(item, index) in paginatedReturnItems"
           :key="index"
           class="border-b transition duration-200 hover:bg-gray-100"
         >
-          <td class="p-3 text-center">{{ index + 1 }}</td>
+          <td class="p-3 text-center">{{ (returnItemsCurrentPage - 1) * pageSize + index + 1 }}</td>
           <td class="p-3 text-center">{{ item.sale?.order_id || 'N/A' }}</td>
           <td class="p-3 text-center">{{ item.product?.name }}</td>
           <td class="p-3 text-center">{{ item.return_date }}</td>
@@ -1143,6 +1322,46 @@
         </tr>
       </tbody>
     </table>
+    </div>
+    <!-- Pagination Controls for Return Items Table -->
+    <div class="flex justify-between items-center mt-6 px-4">
+      <div class="text-sm text-gray-600">
+        Showing {{ getShowingRange(returnItemsCurrentPage, pageSize, returnItems.length).start }} to {{ getShowingRange(returnItemsCurrentPage, pageSize, returnItems.length).end }} of {{ returnItems.length }} entries
+      </div>
+      
+      <div class="flex items-center space-x-2">
+        <button
+          @click="returnItemsCurrentPage = Math.max(1, returnItemsCurrentPage - 1)"
+          :disabled="returnItemsCurrentPage === 1"
+          class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          Previous
+        </button>
+        
+        <div class="flex space-x-1">
+          <button
+            v-for="page in returnItemsPageNumbers"
+            :key="page"
+            @click="returnItemsCurrentPage = page"
+            :class="[
+              'px-3 py-1 rounded transition',
+              page === returnItemsCurrentPage
+                ? 'bg-blue-600 text-white font-semibold'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            ]"
+          >
+            {{ page }}
+          </button>
+        </div>
+        
+        <button
+          @click="returnItemsCurrentPage = Math.min(returnItemsTotal, returnItemsCurrentPage + 1)"
+          :disabled="returnItemsCurrentPage === returnItemsTotal"
+          class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          Next
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -1205,11 +1424,11 @@
 
           <tbody class="divide-y divide-gray-200">
             <tr
-              v-for="(order, index) in paintOrderDetails"
+              v-for="(order, index) in paginatedPaintOrders"
               :key="index"
               class="bg-white hover:bg-gray-50"
             >
-              <td class="px-2 py-3 text-xs">{{ index + 1 }}</td>
+              <td class="px-2 py-3 text-xs">{{ (paintOrdersCurrentPage - 1) * pageSize + index + 1 }}</td>
               <td class="px-2 py-3 text-xs font-medium">#{{ order.order_id }}</td>
               <td class="px-2 py-3 text-xs">
                 <div class="truncate" :title="order.customer_name">
@@ -1241,6 +1460,46 @@
             </tr>
           </tbody>
         </table>
+      </div>
+      <!-- Pagination Controls for Paint Orders Table -->
+      <div class="flex justify-between items-center mt-6 px-4">
+        <div class="text-sm text-gray-600">
+          Showing {{ getShowingRange(paintOrdersCurrentPage, pageSize, paintOrderDetails.length).start }} to {{ getShowingRange(paintOrdersCurrentPage, pageSize, paintOrderDetails.length).end }} of {{ paintOrderDetails.length }} entries
+        </div>
+        
+        <div class="flex items-center space-x-2">
+          <button
+            @click="paintOrdersCurrentPage = Math.max(1, paintOrdersCurrentPage - 1)"
+            :disabled="paintOrdersCurrentPage === 1"
+            class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            Previous
+          </button>
+          
+          <div class="flex space-x-1">
+            <button
+              v-for="page in paintOrdersPageNumbers"
+              :key="page"
+              @click="paintOrdersCurrentPage = page"
+              :class="[
+                'px-3 py-1 rounded transition',
+                page === paintOrdersCurrentPage
+                  ? 'bg-blue-600 text-white font-semibold'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              ]"
+            >
+              {{ page }}
+            </button>
+          </div>
+          
+          <button
+            @click="paintOrdersCurrentPage = Math.min(paintOrdersTotal, paintOrdersCurrentPage + 1)"
+            :disabled="paintOrdersCurrentPage === paintOrdersTotal"
+            class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1415,7 +1674,7 @@
   <Footer />
 </template>
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { Doughnut } from "vue-chartjs";
 import { Pie } from "vue-chartjs";
 import { Bar } from "vue-chartjs";
@@ -1550,6 +1809,107 @@ const todaySalesPaymentMethods = computed(() => {
   return methods.sort();
 });
 
+// Pagination state for all tables
+const pageSize = ref(10); // Items per page
+const productsCurrentPage = ref(1);
+const topSalesCurrentPage = ref(1);
+const todaySalesCurrentPage = ref(1);
+const monthlySalesCurrentPage = ref(1);
+const returnItemsCurrentPage = ref(1);
+const paintOrdersCurrentPage = ref(1);
+
+// Paginated computed properties
+const paginatedProducts = computed(() => {
+  const start = (productsCurrentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return products.value.slice(start, end);
+});
+
+const productsTotal = computed(() => Math.ceil(products.value.length / pageSize.value));
+
+const paginatedTopSales = computed(() => {
+  const start = (topSalesCurrentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredTopSales.value.slice(start, end);
+});
+
+const topSalesTotal = computed(() => Math.ceil(filteredTopSales.value.length / pageSize.value));
+
+const paginatedTodaySales = computed(() => {
+  const start = (todaySalesCurrentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredTodaySales.value.slice(start, end);
+});
+
+const todaySalesTotal = computed(() => Math.ceil(filteredTodaySales.value.length / pageSize.value));
+
+const paginatedMonthlySales = computed(() => {
+  const start = (monthlySalesCurrentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredMonthlySales.value.slice(start, end);
+});
+
+const monthlySalesTotal = computed(() => Math.ceil(filteredMonthlySales.value.length / pageSize.value));
+
+const paginatedReturnItems = computed(() => {
+  const start = (returnItemsCurrentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return returnItems.value.slice(start, end);
+});
+
+const returnItemsTotal = computed(() => Math.ceil(returnItems.value.length / pageSize.value));
+
+const paginatedPaintOrders = computed(() => {
+  const start = (paintOrdersCurrentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return paintOrderDetails.value.slice(start, end);
+});
+
+const paintOrdersTotal = computed(() => Math.ceil(paintOrderDetails.value.length / pageSize.value));
+
+// Helper function to generate page numbers for pagination
+const getPageNumbers = (currentPage, totalPages) => {
+  const pages = [];
+  const maxPagesToShow = 5;
+  
+  if (totalPages <= maxPagesToShow) {
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i);
+    }
+  } else {
+    if (currentPage <= 3) {
+      for (let i = 1; i <= maxPagesToShow; i++) {
+        pages.push(i);
+      }
+    } else if (currentPage >= totalPages - 2) {
+      for (let i = totalPages - maxPagesToShow + 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      for (let i = currentPage - 2; i <= currentPage + 2; i++) {
+        pages.push(i);
+      }
+    }
+  }
+  
+  return pages;
+};
+
+// Computed properties to get page ranges for each table
+const productsPageNumbers = computed(() => getPageNumbers(productsCurrentPage.value, productsTotal.value));
+const topSalesPageNumbers = computed(() => getPageNumbers(topSalesCurrentPage.value, topSalesTotal.value));
+const todaySalesPageNumbers = computed(() => getPageNumbers(todaySalesCurrentPage.value, todaySalesTotal.value));
+const monthlySalesPageNumbers = computed(() => getPageNumbers(monthlySalesCurrentPage.value, monthlySalesTotal.value));
+const returnItemsPageNumbers = computed(() => getPageNumbers(returnItemsCurrentPage.value, returnItemsTotal.value));
+const paintOrdersPageNumbers = computed(() => getPageNumbers(paintOrdersCurrentPage.value, paintOrdersTotal.value));
+
+// Helper function to calculate showing range
+const getShowingRange = (currentPage, pageSize, total) => {
+  const start = (currentPage - 1) * pageSize + 1;
+  const end = Math.min(currentPage * pageSize, total);
+  return { start, end, total };
+};
+
 const searchCode = ref('');
 const batchProducts = ref([]);
 const batchTotalQuantity = ref(0);
@@ -1604,6 +1964,7 @@ const todaySalesData = ref(props.todaySalesData);
 const stockTransactionsReturn = ref(props.stockTransactionsReturn);
 const paintOrderSummary = ref(props.paintOrderSummary);
 const paintOrderDetails = ref(props.paintOrderDetails);
+const returnItems = ref(props.returnItems);
 const sales = ref(props.sales);
 const totalQty = computed(() => {
   return products.value.reduce(
@@ -1628,7 +1989,21 @@ const totalRetailValue = computed(() => {
   }, 0);
 });
 
+// Watch for filter changes and reset pagination
+watch([topSalesPaymentFilter, todaySalesPaymentFilter], () => {
+  topSalesCurrentPage.value = 1;
+  todaySalesCurrentPage.value = 1;
+});
 
+// Reset all pagination when page size changes
+watch(pageSize, () => {
+  productsCurrentPage.value = 1;
+  topSalesCurrentPage.value = 1;
+  todaySalesCurrentPage.value = 1;
+  monthlySalesCurrentPage.value = 1;
+  returnItemsCurrentPage.value = 1;
+  paintOrdersCurrentPage.value = 1;
+});
 
 
 
