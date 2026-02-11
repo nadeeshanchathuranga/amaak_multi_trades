@@ -85,6 +85,25 @@ class ReturnItemController extends Controller
             $totalReturnAmount = 0;
             $returnedItems = [];
 
+            // First pass: Calculate total return amount to determine proportional discount
+            $preliminaryTotal = 0;
+            foreach ($validated['return_items'] as $item) {
+                $saleItem = SaleItem::find($item['sale_item_id']);
+                if ($saleItem) {
+                    $preliminaryTotal += $item['quantity'] * $saleItem->unit_price;
+                }
+            }
+
+            // Calculate total custom discount amount
+            $totalCustomDiscountAmount = 0;
+            if (isset($validated['custom_discount']) && $validated['custom_discount'] > 0) {
+                if ($validated['custom_discount_type'] === 'percent') {
+                    $totalCustomDiscountAmount = ($preliminaryTotal * $validated['custom_discount']) / 100;
+                } else {
+                    $totalCustomDiscountAmount = $validated['custom_discount'];
+                }
+            }
+
             // Process each return item
             foreach ($validated['return_items'] as $item) {
                 $sale = Sale::find($item['sale_id']);
@@ -112,6 +131,12 @@ class ReturnItemController extends Controller
                 // Calculate return amount using the unit price from sale item
                 $returnAmount = $item['quantity'] * $saleItem->unit_price;
                 $totalReturnAmount += $returnAmount;
+
+                // Calculate proportional custom discount for this item
+                $itemCustomDiscount = 0;
+                if ($totalCustomDiscountAmount > 0 && $preliminaryTotal > 0) {
+                    $itemCustomDiscount = ($returnAmount / $preliminaryTotal) * $totalCustomDiscountAmount;
+                }
 
                 // Get product for stock update
                 $returnedProduct = Product::find($item['product_id']);
@@ -168,7 +193,7 @@ class ReturnItemController extends Controller
                     'reason' => $item['reason'],
                     'unit_price' => $saleItem->unit_price,
                     'total_price' => $returnAmount,
-                    'discount' => 0,
+                    'discount' => $itemCustomDiscount,
                     'return_date' => $item['return_date'],
                     'return_type' => 'cash',
                     'employee_id' => $sale->employee_id,
@@ -182,6 +207,7 @@ class ReturnItemController extends Controller
                     'quantity' => $item['quantity'],
                     'unit_price' => $saleItem->unit_price,
                     'total' => $returnAmount,
+                    'discount' => $itemCustomDiscount,
                     'reason' => $item['reason'],
                 ];
 
@@ -191,17 +217,7 @@ class ReturnItemController extends Controller
                 // Modifying the original would double-count the return.
             }
 
-            // Apply custom discount if provided
-            $discountAmount = 0;
-            if (isset($validated['custom_discount']) && $validated['custom_discount'] > 0) {
-                if ($validated['custom_discount_type'] === 'percent') {
-                    $discountAmount = ($totalReturnAmount * $validated['custom_discount']) / 100;
-                } else {
-                    $discountAmount = $validated['custom_discount'];
-                }
-            }
-
-            $finalRefundAmount = $totalReturnAmount - $discountAmount;
+            $finalRefundAmount = $totalReturnAmount - $totalCustomDiscountAmount;
             $cashReturned = $validated['cash_return_amount'] ?? $finalRefundAmount;
 
             DB::commit();
@@ -214,7 +230,7 @@ class ReturnItemController extends Controller
                     'original_order_id' => $originalSale->order_id,
                     'return_items' => $returnedItems,
                     'return_total' => $totalReturnAmount,
-                    'discount_applied' => $discountAmount,
+                    'discount_applied' => $totalCustomDiscountAmount,
                     'final_refund' => $finalRefundAmount,
                     'cash_returned' => $cashReturned,
                     'updated_sale_total' => $originalSale->total_amount,

@@ -22,6 +22,8 @@ class Sale extends Model
         'cash',
         'card',
         'custom_discount',
+        'custom_discount_type',
+        'custom_discount_percent',
     ];
 
     /**

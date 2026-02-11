@@ -416,10 +416,11 @@ const returnTotal = computed(() => {
 });
 
 const discountAmount = computed(() => {
+    const discount = parseFloat(customDiscount.value) || 0;
     if (customDiscountType.value === 'percent') {
-        return (returnTotal.value * customDiscount.value) / 100;
+        return (returnTotal.value * discount) / 100;
     }
-    return customDiscount.value;
+    return discount;
 });
 
 const finalRefundAmount = computed(() => {
@@ -479,6 +480,22 @@ const loadOrder = async (saleId) => {
         const sale = props.sales.find(s => s.id === saleId);
         selectedSale.value = sale;
         selectedSaleEmployee.value = response.data.employee;
+
+        // Auto-populate custom discount from the original sale
+        if (sale && sale.custom_discount && sale.custom_discount > 0) {
+            // If we have the discount type and percent stored, use them
+            if (sale.custom_discount_type && sale.custom_discount_percent) {
+                customDiscountType.value = sale.custom_discount_type;
+                customDiscount.value = parseFloat(sale.custom_discount_percent);
+            } else {
+                // Fallback for old data: treat stored value as fixed amount
+                customDiscount.value = parseFloat(sale.custom_discount);
+                customDiscountType.value = 'fixed';
+            }
+        } else {
+            customDiscount.value = 0;
+            customDiscountType.value = 'percent';
+        }
 
         // Clear existing items
         returnItems.value = [];

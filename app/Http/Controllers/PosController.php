@@ -309,8 +309,9 @@ class PosController extends Controller
                 'sale_date' => now()->toDateString(), // Current date
                 'cash' => $cashAmount,
                 'card' => $cardAmount,
-                'custom_discount' => $customValue, // Store calculated custom discount value, not raw input
-                
+                'custom_discount' => $customValue, // Store calculated custom discount value
+                'custom_discount_type' => $customDiscountType, // Store type (percent or fixed)
+                'custom_discount_percent' => $customDiscount, // Store original percentage or fixed value
 
             ]);
 
