@@ -484,6 +484,15 @@ const submitOrder = async () => {
     message.value = "Payment is not enough";
     return;
   }
+  if (isCreditBill.value) {
+    const name = (customer.value.name || '').trim();
+    const contact = (customer.value.contactNumber || '').trim();
+    if (!name || !contact) {
+      isAlertModalOpen.value = true;
+      message.value = "Customer name and contact number are required for credit bill";
+      return;
+    }
+  }
   try {
     const baseMethods = selectedPaymentMethods.value;
     let paymentMethod = baseMethods.join('+');

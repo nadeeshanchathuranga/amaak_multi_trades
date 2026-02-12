@@ -712,6 +712,16 @@ const submitOrder = async () => {
     // If credit bill is checked, order can be submitted (full or partial credit bill)
     // No additional validation needed - isCreditBill checkbox allows it
 
+    if (isCreditBill.value) {
+        const name = (customer.value.name || '').trim();
+        const contact = (customer.value.contactNumber || '').trim();
+        if (!name || !contact) {
+            isAlertModalOpen.value = true;
+            message.value = "Customer name and contact number are required for credit bill";
+            return;
+        }
+    }
+
     try {
         // Normalize discount fields before submitting
         const normalizedProducts = products.value.map(item => ({

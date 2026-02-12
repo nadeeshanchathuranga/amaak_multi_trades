@@ -158,6 +158,16 @@ class PosController extends Controller
 
         $customer = null;
 
+        if ($request->input('isCreditBill')) {
+            $request->validate([
+                'customer.name' => 'required|string',
+                'customer.contactNumber' => 'required|string',
+            ], [
+                'customer.name.required' => 'Customer name is required for credit bill.',
+                'customer.contactNumber.required' => 'Customer contact number is required for credit bill.',
+            ]);
+        }
+
         $products = $request->input('products');
         
         // Normalize product data: handle both POS (with selling_price) and ManualPos (with unitPrice)
