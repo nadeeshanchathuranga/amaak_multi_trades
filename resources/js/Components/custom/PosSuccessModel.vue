@@ -91,6 +91,10 @@
        initialOrderId: String,
        balance: Number,
        cash: Number,
+      card: Number,
+      koko: Number,
+      totalPaid: Number,
+      remaining: Number,
        subTotal: Number,
        totalDiscount: Number,
        total: Number,
@@ -107,6 +111,19 @@
            default: 0
        }
    });
+
+       const formatPaymentMethod = (method) => {
+         if (!method) return 'Cash';
+         return String(method)
+           .split('+')
+           .map(part => part.trim())
+           .filter(Boolean)
+           .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+           .join('+');
+       };
+
+       const paymentMethodDisplay = computed(() => formatPaymentMethod(props.paymentMethod));
+       const hasKokoPayment = computed(() => /koko/i.test(String(props.paymentMethod || '')) || Number(props.koko) > 0);
 
    const handlePrintReceipt = () => {
        console.log('handlePrintReceipt called');
@@ -337,7 +354,7 @@
            </div>
            <div style="text-align: right;">
              <p>Payment Method:</p>
-             <small>${props.paymentMethod || 'Cash'}</small>
+             <small>${paymentMethodDisplay.value}</small>
            </div>
          </div>
        </div>
@@ -405,7 +422,7 @@
                props.custom_discount_type === 'fixed' ? 'LKR' : ''}
            </span>
          </div>
-         ${props.paymentMethod === 'Koko' ? `
+        ${hasKokoPayment.value ? `
          <div>
            <span>Koko Surcharge (11.5%)</span>
            <span>${(Number(props.kokoSurcharge) || 0).toFixed(2)} LKR</span>
@@ -418,9 +435,21 @@
            <span>Cash</span>
            <span>${(Number(props.cash) || 0).toFixed(2)} LKR</span>
          </div>
+         <div>
+           <span>Card</span>
+           <span>${(Number(props.card) || 0).toFixed(2)} LKR</span>
+         </div>
+         <div>
+           <span>Koko</span>
+           <span>${(Number(props.koko) || 0).toFixed(2)} LKR</span>
+         </div>
+         <div>
+           <span>Total Paid</span>
+           <span>${(Number(props.totalPaid) || 0).toFixed(2)} LKR</span>
+         </div>
          <div style="font-weight: bold;">
-           <span>Balance</span>
-           <span>${(Number(props.balance) || 0).toFixed(2)} LKR</span>
+           <span>Remaining</span>
+           <span>${(Number(props.remaining) || 0).toFixed(2)} LKR</span>
          </div>
        </div>
 

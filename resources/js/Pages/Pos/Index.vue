@@ -436,7 +436,7 @@
     </div>
     <PosSuccessModel :open="isSuccessModalOpen" @update:open="handleModalOpenUpdate" :products="products"
         :employee="modalEmployee" :cashier="loggedInUser" :customer="modalCustomer" :orderid="actualOrderId || orderid.value" :cash="cash"
-        :balance="balance" :subTotal="subtotal" :totalDiscount="totalDiscount" :total="total"
+        :card="card" :koko="koko" :totalPaid="totalPaid" :remaining="remaining" :balance="balance" :subTotal="subtotal" :totalDiscount="totalDiscount" :total="total"
         :custom_discount_type="custom_discount_type"
         :custom_discount="custom_discount" :paymentMethod="paymentMethodDisplay" :kokoSurcharge="kokoSurcharge" />
     <AlertModel v-model:open="isAlertModalOpen" :message="message" />
