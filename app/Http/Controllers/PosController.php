@@ -278,22 +278,27 @@ class PosController extends Controller
 
             $cashAmount = floatval($request->input('cash', 0));
             $cardAmount = floatval($request->input('card', 0));
+            $kokoAmount = floatval($request->input('koko', 0));
             $paymentMethod = $request->input('paymentMethod');
             $isCreditBill = $request->input('isCreditBill', false);
 
-            // Determine payment method
-            if ($cashAmount > 0 && $cardAmount > 0) {
-                // Both cash and card
-                $paymentMethod = 'cash+card';
-                if ($isCreditBill) {
-                    $paymentMethod = 'cash+card+credit bill';
-                }
-            } elseif ($isCreditBill && ($cashAmount > 0 || $cardAmount > 0)) {
-                // Partial payment + credit bill for remaining
-                $paymentMethod = 'cash+credit bill'; // or 'card+credit bill'
-            } elseif ($isCreditBill && $cashAmount == 0 && $cardAmount == 0) {
-                // Full credit bill (no upfront payment)
-                $paymentMethod = 'credit bill';
+            // Determine payment method based on actual amounts
+            $methods = [];
+            if ($cashAmount > 0) {
+                $methods[] = 'cash';
+            }
+            if ($cardAmount > 0) {
+                $methods[] = 'card';
+            }
+            if ($kokoAmount > 0) {
+                $methods[] = 'koko';
+            }
+            if ($isCreditBill) {
+                $methods[] = 'credit bill';
+            }
+
+            if (!empty($methods)) {
+                $paymentMethod = implode('+', $methods);
             }
 
             // Create the sale record
@@ -309,6 +314,7 @@ class PosController extends Controller
                 'sale_date' => now()->toDateString(), // Current date
                 'cash' => $cashAmount,
                 'card' => $cardAmount,
+                'koko' => $kokoAmount,
                 'custom_discount' => $customValue, // Store calculated custom discount value
                 'custom_discount_type' => $customDiscountType, // Store type (percent or fixed)
                 'custom_discount_percent' => $customDiscount, // Store original percentage or fixed value

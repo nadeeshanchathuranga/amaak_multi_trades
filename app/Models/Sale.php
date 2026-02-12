@@ -21,6 +21,7 @@ class Sale extends Model
         'total_cost',
         'cash',
         'card',
+        'koko',
         'custom_discount',
         'custom_discount_type',
         'custom_discount_percent',
