@@ -667,6 +667,11 @@ const hasKoko = computed(() => isPaymentSelected('Koko'));
 const incrementQuantity = (id) => {
     const product = products.value.find((item) => item.id === id);
     if (product) {
+        if (product.stock_quantity != null && product.quantity >= product.stock_quantity) {
+            isAlertModalOpen.value = true;
+            message.value = `Only ${product.stock_quantity} quantity available for ${product.name}`;
+            return;
+        }
         product.quantity += 1;
     }
 };
@@ -968,6 +973,11 @@ const submitBarcode = async () => {
 
             if (existingProduct) {
                 // If it exists, increment the quantity
+                if (existingProduct.stock_quantity != null && existingProduct.quantity >= existingProduct.stock_quantity) {
+                    isAlertModalOpen.value = true;
+                    message.value = `Only ${existingProduct.stock_quantity} quantity available for ${existingProduct.name}`;
+                    return;
+                }
                 existingProduct.quantity += 1;
             } else {
                 // If it doesn't exist, add it to the products array with quantity 1
@@ -1087,6 +1097,11 @@ const handleSelectedProducts = (selectedProducts) => {
 
         if (existingProduct) {
             // If the product exists, increment its quantity
+            if (existingProduct.stock_quantity != null && existingProduct.quantity >= existingProduct.stock_quantity) {
+                isAlertModalOpen.value = true;
+                message.value = `Only ${existingProduct.stock_quantity} quantity available for ${existingProduct.name}`;
+                return;
+            }
             existingProduct.quantity += 1;
         } else {
             // If the product doesn't exist, add it with a default quantity
