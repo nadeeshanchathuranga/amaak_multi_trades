@@ -189,9 +189,9 @@
               <input
                 v-model="form.invoice_number"
                 type="text"
-                :placeholder="actionType === 'create_invoice' ? 'Enter new invoice number' : 'Enter invoice number (optional)'"
+                :placeholder="actionType === 'create_invoice' ? 'Auto-generated invoice number' : 'Enter invoice number (optional)'"
                 :required="actionType === 'create_invoice'"
-                :readonly="selectedInvoice !== null"
+                :readonly="actionType === 'create_invoice' || selectedInvoice !== null"
                 class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <div v-if="form.errors.invoice_number" class="mt-2 text-red-600 text-sm">
@@ -426,7 +426,7 @@
 
 <script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import Header from '@/Components/custom/Header.vue';
 import Footer from '@/Components/custom/Footer.vue';
 import Banner from '@/Components/Banner.vue';
@@ -494,6 +494,35 @@ const filteredPayments = computed(() => {
   );
 });
 
+const nextInvoiceNumber = computed(() => {
+  const now = new Date();
+  const year = String(now.getFullYear());
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const dateKey = `${year}${month}${day}`;
+
+  const sequenceNumbers = (props.invoices || [])
+    .map((invoice) => {
+      const value = String(invoice.invoice_number || '').trim();
+      const match = value.match(/^INV-(\d{8})-(\d+)$/);
+      if (!match || match[1] !== dateKey) return NaN;
+      return parseInt(match[2], 10);
+    })
+    .filter((num) => Number.isFinite(num));
+
+  const nextSequence = sequenceNumbers.length ? Math.max(...sequenceNumbers) + 1 : 1;
+  const paddedSequence = String(nextSequence).padStart(4, '0');
+  return `INV-${dateKey}-${paddedSequence}`;
+});
+
+const updateInvoiceNumber = () => {
+  if (actionType.value === 'create_invoice') {
+    form.invoice_number = nextInvoiceNumber.value;
+  } else if (!selectedInvoice.value) {
+    form.invoice_number = '';
+  }
+};
+
 const remainingDue = computed(() => {
   if (actionType.value === 'make_payment') {
     const payAmount = Number(form.pay) || 0;
@@ -503,6 +532,10 @@ const remainingDue = computed(() => {
   }
   return 0;
 });
+
+watch([actionType, () => props.invoices], () => {
+  updateInvoiceNumber();
+}, { immediate: true });
 
 // Methods
 const selectInvoice = (invoice) => {
@@ -519,6 +552,7 @@ const resetForm = () => {
   form.action_type = actionType.value;
   selectedInvoice.value = null;
   form.description = ''; // Clear description/payment method
+  updateInvoiceNumber();
 };
 
 const submit = async () => {
