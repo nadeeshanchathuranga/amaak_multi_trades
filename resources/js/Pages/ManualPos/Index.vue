@@ -825,14 +825,18 @@ const openPrintSlip = () => {
                   <span>Total</span>
                   <span>${total.value} LKR</span>
               </div>
-                <div>
+                ${Number(cash.value) > 0 ? `<div>
                   <span>Cash</span>
                   <span>${cash.value} LKR</span>
-                </div>
-                <div>
+                </div>` : ''}
+                ${Number(card.value) > 0 ? `<div>
                   <span>Card</span>
                   <span>${card.value} LKR</span>
-                </div>
+                </div>` : ''}
+                ${Number(koko.value) > 0 ? `<div>
+                  <span>Koko</span>
+                  <span>${koko.value} LKR</span>
+                </div>` : ''}
                 <div style="font-weight: bold;">
                   <span>Remaining</span>
                   <span>${remaining.value} LKR</span>
