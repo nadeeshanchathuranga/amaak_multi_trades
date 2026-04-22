@@ -431,18 +431,21 @@
            <span>Total</span>
            <span>${(Number(props.total) || 0).toFixed(2)} LKR</span>
          </div>
+         ${Number(props.cash) > 0 ? `
          <div>
            <span>Cash</span>
            <span>${(Number(props.cash) || 0).toFixed(2)} LKR</span>
-         </div>
+         </div>` : ''}
+         ${Number(props.card) > 0 ? `
          <div>
            <span>Card</span>
            <span>${(Number(props.card) || 0).toFixed(2)} LKR</span>
-         </div>
+         </div>` : ''}
+         ${Number(props.koko) > 0 ? `
          <div>
            <span>Koko</span>
            <span>${(Number(props.koko) || 0).toFixed(2)} LKR</span>
-         </div>
+         </div>` : ''}
          <div>
            <span>Total Paid</span>
            <span>${(Number(props.totalPaid) || 0).toFixed(2)} LKR</span>
